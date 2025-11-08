@@ -10,6 +10,9 @@ Responsável por:
 """
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from fastapi import Request
 from app.database import Base, engine
 from app.routes import veiculos, usuarios, manutencoes, planos
 
@@ -29,6 +32,15 @@ app = FastAPI(
     description="Sistema para cadastro e controle de manutenção de veículos.",
     version="1.0.0"
 )
+
+# montar arquivos estáticos e templates
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+templates = Jinja2Templates(directory="app/templates")
+
+# rota piloto (UI)
+@app.get("/", include_in_schema=False)
+def ui_root(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 # ============================================================
 # 3. Registro das rotas
