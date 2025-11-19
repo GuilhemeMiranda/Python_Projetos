@@ -1,162 +1,179 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 from app import models, schemas
+from typing import Optional, List
 
-# ============================================================
-# 1. CRUD de USUÁRIO
-# ============================================================
-
+# ===== CRUD DE USUÁRIOS =====
 def criar_usuario(db: Session, usuario: schemas.UsuarioCreate):
-    """Cria um novo usuário no banco."""
-    novo_usuario = models.Usuario(
+    from app.security import gerar_hash_senha
+    db_usuario = models.Usuario(
         nome=usuario.nome,
         email=usuario.email,
-        senha_hash=usuario.senha  # Em produção, utilize gerar_hash_senha(usuario.senha)
+        senha_hash=gerar_hash_senha(usuario.senha)
     )
-    db.add(novo_usuario)
+    db.add(db_usuario)
     db.commit()
-    db.refresh(novo_usuario)
-    return novo_usuario
+    db.refresh(db_usuario)
+    return db_usuario
 
+def get_usuario(db: Session, usuario_id: int):
+    return db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
 
-def listar_usuarios(db: Session):
-    """Retorna todos os usuários cadastrados."""
-    return db.query(models.Usuario).all()
-
-
-def buscar_usuario_por_email(db: Session, email: str):
-    """Busca um usuário pelo e-mail."""
+def get_usuario_por_email(db: Session, email: str):
     return db.query(models.Usuario).filter(models.Usuario.email == email).first()
 
+def get_usuarios(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Usuario).offset(skip).limit(limit).all()
 
-# ============================================================
-# 2. CRUD de VEÍCULO
-# ============================================================
+def atualizar_usuario(db: Session, usuario_id: int, usuario: schemas.UsuarioCreate):
+    from app.security import gerar_hash_senha
+    db_usuario = get_usuario(db, usuario_id)
+    if db_usuario:
+        db_usuario.nome = usuario.nome
+        db_usuario.email = usuario.email
+        if usuario.senha:
+            db_usuario.senha_hash = gerar_hash_senha(usuario.senha)
+        db.commit()
+        db.refresh(db_usuario)
+    return db_usuario
 
-def criar_veiculo(db: Session, veiculo: schemas.VeiculoCreate):
-    """Cria um novo veículo vinculado a um usuário."""
-    novo_veiculo = models.Veiculo(**veiculo.dict())
-    db.add(novo_veiculo)
+def deletar_usuario(db: Session, usuario_id: int):
+    db_usuario = get_usuario(db, usuario_id)
+    if db_usuario:
+        db.delete(db_usuario)
+        db.commit()
+    return db_usuario
+
+# ===== CRUD DE VEÍCULOS =====
+def criar_veiculo(db: Session, veiculo: schemas.VeiculoCreate, usuario_id: int):
+    db_veiculo = models.Veiculo(
+        placa=veiculo.placa,
+        ano=veiculo.ano,
+        marca=veiculo.marca,
+        modelo=veiculo.modelo,
+        km_atual=veiculo.km_atual,
+        usuario_id=usuario_id
+    )
+    db.add(db_veiculo)
     db.commit()
-    db.refresh(novo_veiculo)
-    return novo_veiculo
+    db.refresh(db_veiculo)
+    return db_veiculo
 
-
-def listar_veiculos(db: Session):
-    """Lista todos os veículos cadastrados."""
-    return db.query(models.Veiculo).all()
-
-
-def buscar_veiculo_por_id(db: Session, veiculo_id: int):
-    """Busca um veículo pelo ID."""
+def get_veiculo(db: Session, veiculo_id: int):
     return db.query(models.Veiculo).filter(models.Veiculo.id == veiculo_id).first()
 
+def get_veiculo_por_placa(db: Session, placa: str):
+    return db.query(models.Veiculo).filter(models.Veiculo.placa == placa).first()
 
-def atualizar_veiculo(db: Session, veiculo_id: int, dados: schemas.VeiculoBase):
-    """Atualiza os dados de um veículo existente."""
-    veiculo = buscar_veiculo_por_id(db, veiculo_id)
-    if not veiculo:
-        return None
-    for campo, valor in dados.dict(exclude_unset=True).items():
-        setattr(veiculo, campo, valor)
-    db.commit()
-    db.refresh(veiculo)
-    return veiculo
+def get_veiculos(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Veiculo).offset(skip).limit(limit).all()
 
+def get_veiculos_usuario(db: Session, usuario_id: int):
+    return db.query(models.Veiculo).filter(models.Veiculo.usuario_id == usuario_id).all()
 
-def excluir_veiculo(db: Session, veiculo_id: int):
-    """Remove um veículo do banco."""
-    veiculo = buscar_veiculo_por_id(db, veiculo_id)
-    if not veiculo:
-        return None
-    db.delete(veiculo)
-    db.commit()
-    return veiculo
+def atualizar_veiculo(db: Session, veiculo_id: int, veiculo: schemas.VeiculoCreate):
+    db_veiculo = get_veiculo(db, veiculo_id)
+    if db_veiculo:
+        db_veiculo.placa = veiculo.placa
+        db_veiculo.ano = veiculo.ano
+        db_veiculo.marca = veiculo.marca
+        db_veiculo.modelo = veiculo.modelo
+        db_veiculo.km_atual = veiculo.km_atual
+        db.commit()
+        db.refresh(db_veiculo)
+    return db_veiculo
 
+def deletar_veiculo(db: Session, veiculo_id: int):
+    db_veiculo = get_veiculo(db, veiculo_id)
+    if db_veiculo:
+        db.delete(db_veiculo)
+        db.commit()
+    return db_veiculo
 
-# ============================================================
-# 3. CRUD de MANUTENÇÃO
-# ============================================================
-
+# ===== CRUD DE MANUTENÇÕES =====
 def criar_manutencao(db: Session, manutencao: schemas.ManutencaoCreate):
-    """Cria um registro de manutenção."""
-    nova_manutencao = models.Manutencao(**manutencao.dict())
-    db.add(nova_manutencao)
+    db_manutencao = models.Manutencao(
+        veiculo_id=manutencao.veiculo_id,
+        data=manutencao.data,
+        km=manutencao.km,
+        tipo=manutencao.tipo,
+        prestador=manutencao.prestador,
+        custo=manutencao.custo
+    )
+    db.add(db_manutencao)
     db.commit()
-    db.refresh(nova_manutencao)
-    return nova_manutencao
+    db.refresh(db_manutencao)
+    return db_manutencao
 
-
-def listar_manutencoes(db: Session):
-    """Lista todas as manutenções."""
-    return db.query(models.Manutencao).all()
-
-
-def buscar_manutencao_por_id(db: Session, manutencao_id: int):
-    """Busca uma manutenção específica."""
+def get_manutencao(db: Session, manutencao_id: int):
     return db.query(models.Manutencao).filter(models.Manutencao.id == manutencao_id).first()
 
+def get_manutencoes(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Manutencao).offset(skip).limit(limit).all()
 
-def excluir_manutencao(db: Session, manutencao_id: int):
-    """Exclui uma manutenção."""
-    manutencao = buscar_manutencao_por_id(db, manutencao_id)
-    if manutencao:
-        db.delete(manutencao)
+def get_manutencoes_veiculo(db: Session, veiculo_id: int):
+    return db.query(models.Manutencao).filter(
+        models.Manutencao.veiculo_id == veiculo_id
+    ).order_by(models.Manutencao.data.desc()).all()
+
+def atualizar_manutencao(db: Session, manutencao_id: int, manutencao: schemas.ManutencaoCreate):
+    db_manutencao = get_manutencao(db, manutencao_id)
+    if db_manutencao:
+        db_manutencao.veiculo_id = manutencao.veiculo_id
+        db_manutencao.data = manutencao.data
+        db_manutencao.km = manutencao.km
+        db_manutencao.tipo = manutencao.tipo
+        db_manutencao.prestador = manutencao.prestador
+        db_manutencao.custo = manutencao.custo
         db.commit()
-        return manutencao
-    return None
+        db.refresh(db_manutencao)
+    return db_manutencao
 
+def deletar_manutencao(db: Session, manutencao_id: int):
+    db_manutencao = get_manutencao(db, manutencao_id)
+    if db_manutencao:
+        db.delete(db_manutencao)
+        db.commit()
+    return db_manutencao
 
-# ============================================================
-# 4. CRUD de DOCUMENTOS
-# ============================================================
-
-def criar_documento(db: Session, documento: schemas.DocumentoCreate):
-    """Salva o registro de um documento vinculado a uma manutenção."""
-    novo_documento = models.Documento(**documento.dict())
-    db.add(novo_documento)
+# ===== CRUD DE PLANOS DE MANUTENÇÃO =====
+def criar_plano(db: Session, plano: schemas.PlanoCreate):
+    db_plano = models.PlanoManutencao(
+        veiculo_id=plano.veiculo_id,
+        tipo_manutencao=plano.tipo_manutencao,
+        km_previsto=plano.km_previsto,
+        data_prevista=plano.data_prevista
+    )
+    db.add(db_plano)
     db.commit()
-    db.refresh(novo_documento)
-    return novo_documento
+    db.refresh(db_plano)
+    return db_plano
 
+def get_plano(db: Session, plano_id: int):
+    return db.query(models.PlanoManutencao).filter(models.PlanoManutencao.id == plano_id).first()
 
-def listar_documentos(db: Session):
-    """Lista todos os documentos cadastrados."""
-    return db.query(models.Documento).all()
+def get_planos(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.PlanoManutencao).offset(skip).limit(limit).all()
 
+def get_planos_veiculo(db: Session, veiculo_id: int):
+    return db.query(models.PlanoManutencao).filter(
+        models.PlanoManutencao.veiculo_id == veiculo_id
+    ).order_by(models.PlanoManutencao.km_previsto).all()
 
-def excluir_documento(db: Session, documento_id: int):
-    """Remove um documento."""
-    doc = db.query(models.Documento).filter(models.Documento.id == documento_id).first()
-    if doc:
-        db.delete(doc)
+def atualizar_plano(db: Session, plano_id: int, plano: schemas.PlanoCreate):
+    db_plano = get_plano(db, plano_id)
+    if db_plano:
+        db_plano.veiculo_id = plano.veiculo_id
+        db_plano.tipo_manutencao = plano.tipo_manutencao
+        db_plano.km_previsto = plano.km_previsto
+        db_plano.data_prevista = plano.data_prevista
         db.commit()
-        return doc
-    return None
+        db.refresh(db_plano)
+    return db_plano
 
-
-# ============================================================
-# 5. CRUD de PLANOS DE MANUTENÇÃO
-# ============================================================
-
-def criar_plano(db: Session, plano: schemas.PlanoManutencaoCreate):
-    """Cria um plano de manutenção para um veículo."""
-    novo_plano = models.PlanoManutencao(**plano.dict())
-    db.add(novo_plano)
-    db.commit()
-    db.refresh(novo_plano)
-    return novo_plano
-
-
-def listar_planos(db: Session):
-    """Lista todos os planos de manutenção."""
-    return db.query(models.PlanoManutencao).all()
-
-
-def excluir_plano(db: Session, plano_id: int):
-    """Exclui um plano de manutenção."""
-    plano = db.query(models.PlanoManutencao).filter(models.PlanoManutencao.id == plano_id).first()
-    if plano:
-        db.delete(plano)
+def deletar_plano(db: Session, plano_id: int):
+    db_plano = get_plano(db, plano_id)
+    if db_plano:
+        db.delete(db_plano)
         db.commit()
-        return plano
-    return None
+    return db_plano

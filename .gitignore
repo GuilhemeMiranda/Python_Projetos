@@ -2,6 +2,23 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
 # Virtual environments
 .venv/
@@ -9,58 +26,36 @@ venv/
 ENV/
 env/
 
-# Distribution / packaging
-build/
-dist/
-*.egg-info/
-pip-wheel-metadata/
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage
-htmlcov/
-.coverage
-.coverage.*
-.cache
-.pytest_cache/
-nosetests.xml
-coverage.xml
-
-# MyPy
-.mypy_cache/
-
-# Editor / OS files
+# IDE
 .vscode/
 .idea/
-*.sublime-project
-*.sublime-workspace
 *.swp
+*.swo
+*~
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# OS
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
 
 # Environment / secrets
 .env
 .env.* 
 *.env
 
-# Database files
-*.sqlite3
-*.db
-manutencao_veicular.db
+# Test
+.pytest_cache/
+.coverage
+htmlcov/
 
-# Logs
-*.log
-
-# OneDrive / temp
-~$*
-~*
-
-# Others
-*.pyc
-*.pyo
-*.pyd
-*.egg
-*.manifest
-*.spec
+# Temporary files
+*.tmp
+*.bak
+*.backup

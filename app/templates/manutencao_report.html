@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Relatório de Manutenções</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/manutencao.js" defer></script>
+</head>
+<body class="ui-bg">
+  {% extends "base.html" %}
+  {% block title %}Relatório de Manutenções{% endblock %}
+
+  {% block content %}
+  <main class="card report-card" aria-label="Relatório de Manutenções">
+    <header class="card-header"><h1>Relatório de Manutenções</h1></header>
+
+    <section class="report-controls">
+      <div class="row">
+        <button id="refreshReport" class="btn btn-primary">Atualizar</button>
+        <input id="filterVeiculo" placeholder="Filtrar por Placa" class="input small" />
+        <button id="applyFilter" class="btn btn-light">Filtrar</button>
+      </div>
+    </section>
+
+    <section class="table-wrap">
+      <table id="manutTable" class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Placa</th>
+            <th>Data</th>
+            <th>KM</th>
+            <th>Tipo</th>
+            <th>Prestador</th>
+            <th>Custo</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div id="reportMsg" class="muted"></div>
+    </section>
+  </main>
+
+  <script src="/static/manutencao.js" defer></script>
+  {% endblock %}
+</body>
+</html>

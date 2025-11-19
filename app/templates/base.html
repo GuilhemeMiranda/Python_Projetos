@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>{% block title %}Manutenção Veicular{% endblock %}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body class="ui-bg">
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-title">Manutenção Veicular</div>
+        <button id="btnToggle" class="hamburger" aria-label="Abrir menu">☰</button>
+      </div>
+      <nav class="nav">
+        <a class="nav-item" href="/ui/dashboard">Início</a>
+        <a class="nav-item" href="/ui/veiculo">Cadastrar Veículo</a>
+        <a class="nav-item" href="/ui/manutencao">Cadastrar Manutenção</a>
+        <a class="nav-item" href="/ui/manutencoes">Relatório de Manutenções</a>
+      </nav>
+      <div class="sidebar-footer">
+        <small>v1.2</small>
+        <button id="logoutBtn" class="btn btn-danger" type="button">Sair</button>
+      </div>
+    </aside>
+    <main class="content" id="content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  <script src="/static/nav.js" defer></script>
+  <script src="/static/app.js" defer></script>
+  <!-- NÃO inclua veiculo.js aqui, ele é incluído no template específico -->
+</body>
+</html>

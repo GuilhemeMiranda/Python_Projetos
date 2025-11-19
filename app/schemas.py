@@ -1,107 +1,83 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional, List
+from pydantic import BaseModel
+from typing import Optional
 from datetime import date
 
-# ============================================================
-# 1. Schemas de USUÁRIO
-# ============================================================
-
+# ===== SCHEMAS DE USUÁRIO =====
 class UsuarioBase(BaseModel):
     nome: str
-    email: EmailStr
+    email: str
 
 class UsuarioCreate(UsuarioBase):
-    senha: str  # senha em texto puro, será convertida para hash depois
+    senha: str
 
-class UsuarioResponse(UsuarioBase):
+class Usuario(UsuarioBase):
     id: int
 
     class Config:
-        orm_mode = True
-        # orm_mode permite converter automaticamente objetos ORM
-        # do SQLAlchemy em respostas JSON
+        from_attributes = True
 
+# Alias para compatibilidade
+UsuarioResponse = Usuario
 
-# ============================================================
-# 2. Schemas de VEÍCULO
-# ============================================================
-
+# ===== SCHEMAS DE VEÍCULO =====
 class VeiculoBase(BaseModel):
     placa: str
+    ano: int
+    marca: str
     modelo: str
-    marca: Optional[str] = None
-    ano: Optional[int] = None
-    km_atual: Optional[int] = 0
+    km_atual: int
 
 class VeiculoCreate(VeiculoBase):
-    usuario_id: int
+    pass
 
-class VeiculoResponse(VeiculoBase):
+class Veiculo(VeiculoBase):
     id: int
     usuario_id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
+# Alias para compatibilidade
+VeiculoResponse = Veiculo
 
-# ============================================================
-# 3. Schemas de MANUTENÇÃO
-# ============================================================
-
+# ===== SCHEMAS DE MANUTENÇÃO =====
 class ManutencaoBase(BaseModel):
     veiculo_id: int
-    data: Optional[date] = None
-    km: Optional[int] = None
-    tipo_manutencao: Optional[str] = None
-    descricao: Optional[str] = None
+    data: date
+    km: int
+    tipo: str
+    prestador: Optional[str] = None
     custo: Optional[float] = None
-    prestador_servico: Optional[str] = None
 
 class ManutencaoCreate(ManutencaoBase):
-    pass  # por enquanto, sem campos extras
-
-class ManutencaoResponse(ManutencaoBase):
-    id: int
-
-    class Config:
-        orm_mode = True
-
-
-# ============================================================
-# 4. Schemas de DOCUMENTOS
-# ============================================================
-
-class DocumentoBase(BaseModel):
-    manutencao_id: int
-    nome_arquivo: str
-    tipo: Optional[str] = None
-    caminho_arquivo: Optional[str] = None
-
-class DocumentoCreate(DocumentoBase):
     pass
 
-class DocumentoResponse(DocumentoBase):
+class Manutencao(ManutencaoBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
+# Alias para compatibilidade
+ManutencaoResponse = Manutencao
 
-# ============================================================
-# 5. Schemas de PLANOS DE MANUTENÇÃO
-# ============================================================
-
-class PlanoManutencaoBase(BaseModel):
+# ===== SCHEMAS DE PLANO DE MANUTENÇÃO =====
+class PlanoBase(BaseModel):
     veiculo_id: int
-    nome_plano: str
-    km_referencia: Optional[int] = None
-    servicos: Optional[str] = None
+    tipo_manutencao: str
+    km_previsto: int
+    data_prevista: Optional[date] = None
 
-class PlanoManutencaoCreate(PlanoManutencaoBase):
+class PlanoCreate(PlanoBase):
     pass
 
-class PlanoManutencaoResponse(PlanoManutencaoBase):
+class Plano(PlanoBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+# Alias para compatibilidade
+PlanoResponse = Plano
+PlanoManutencaoCreate = PlanoCreate
+PlanoManutencaoResponse = Plano

@@ -9,12 +9,14 @@ Responsável por:
 - Criar as tabelas (se não existirem)
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Depends
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi import Request
-from app.database import Base, engine
-from app.routes import veiculos, usuarios, manutencoes, planos
+from sqlalchemy.orm import Session
+
+from app.database import Base, engine, get_db
+from app import security
 
 
 # ============================================================
@@ -37,29 +39,78 @@ app = FastAPI(
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
-# rota piloto (UI)
+# incluir routers existentes
+from app.routes import veiculos, usuarios, manutencoes, planos
+from app.routes import auth  # rotas de autenticação
+
+# Registra os routers
+app.include_router(veiculos.router, prefix="/veiculos", tags=["veiculos"])
+app.include_router(usuarios.router, prefix="/usuarios", tags=["usuarios"])
+app.include_router(manutencoes.router, prefix="/manutencoes", tags=["manutencoes"])
+app.include_router(planos.router, prefix="/planos", tags=["planos"])
+app.include_router(auth.router, tags=["auth"])
+
+# Função helper para obter usuário do token
+def _get_user_from_request(request: Request):
+    try:
+        token = request.cookies.get("access_token")
+        if not token:
+            return None
+        user = security.verificar_token_seguro(token)
+        return user
+    except Exception:
+        # evita 500 se a verificação falhar
+        return None
+
+# Rota raiz - redireciona para login ou dashboard
 @app.get("/", include_in_schema=False)
-def ui_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+def root(request: Request):
+    user = _get_user_from_request(request)
+    if not user:
+        return RedirectResponse("/ui/login")
+    return RedirectResponse("/ui/dashboard")
 
-# ============================================================
-# 3. Registro das rotas
-# ============================================================
-# Aqui adicionamos o módulo de veículos
-app.include_router(veiculos.router)
-# Aqui adicionamos o módulo de usuários
-app.include_router(usuarios.router)
-# Aqui adicionamos o módulo de manutenções
-app.include_router(manutencoes.router)
-# Aqui adicionamos o módulo de planos de manutenção
-app.include_router(planos.router)
+# Rota de login
+@app.get("/ui/login", include_in_schema=False)
+def ui_login(request: Request):
+    # Se já estiver logado, redireciona para dashboard
+    user = _get_user_from_request(request)
+    if user:
+        return RedirectResponse("/ui/dashboard")
+    return templates.TemplateResponse("login.html", {"request": request})
 
-# ============================================================
-# 4. Rota inicial (opcional)
-# ============================================================
-@app.get("/")
-def home():
-    """
-    Endpoint inicial de boas-vindas.
-    """
-    return {"mensagem": "Bem-vindo à API de Manutenção Veicular 🚗"}
+# Dashboard (tela inicial com menu)
+@app.get("/ui/dashboard", include_in_schema=False)
+def ui_dashboard(request: Request):
+    user = _get_user_from_request(request)
+    if not user:
+        return RedirectResponse("/ui/login")
+    return templates.TemplateResponse("index.html", {"request": request, "user": user})
+
+# Tela de cadastro de veículo
+@app.get("/ui/veiculo", include_in_schema=False)
+def ui_veiculo(request: Request):
+    user = _get_user_from_request(request)
+    if not user:
+        return RedirectResponse("/ui/login")
+    return templates.TemplateResponse("veiculo_form.html", {"request": request, "user": user})
+
+# Tela de cadastro de manutenção
+@app.get("/ui/manutencao", include_in_schema=False)
+def ui_manutencao(request: Request):
+    user = _get_user_from_request(request)
+    if not user:
+        return RedirectResponse("/ui/login")
+    return templates.TemplateResponse("manutencao_form.html", {"request": request, "user": user})
+
+# Tela de relatório de manutenções
+@app.get("/ui/manutencoes", include_in_schema=False)
+def ui_manutencoes(request: Request):
+    user = _get_user_from_request(request)
+    if not user:
+        return RedirectResponse("/ui/login")
+    return templates.TemplateResponse("manutencao_report.html", {"request": request, "user": user})
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}

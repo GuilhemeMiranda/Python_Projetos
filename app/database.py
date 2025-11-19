@@ -1,7 +1,5 @@
 from sqlalchemy import create_engine
-#from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import declarative_base, sessionmaker
-import os
 
 DATABASE_URL = "sqlite:///./manutencao_veicular.db"
 
@@ -12,7 +10,7 @@ Base = declarative_base()
 def get_db():
     """
     Dependency generator para FastAPI.
-    Usar em endpoints com: db: Session = Depends(get_db)
+    Uso: db: Session = Depends(get_db)
     """
     db = SessionLocal()
     try:

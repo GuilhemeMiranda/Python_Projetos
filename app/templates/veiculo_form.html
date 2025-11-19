@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Cadastro de Veículo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body class="ui-bg">
+  {% extends "base.html" %}
+  {% block title %}Cadastro de Veículo{% endblock %}
+
+  {% block content %}
+  <main class="card form-card" aria-label="Cadastro de Veículo">
+    <header class="card-header"><h1>Cadastro de Veículo</h1></header>
+    
+    <form id="veiculoForm" class="form-vertical">
+      <div class="form-row">
+        <label for="placa">Placa:</label>
+        <input id="placa" name="placa" type="text" placeholder="ABC-1234" class="input small" required />
+      </div>
+
+      <div class="form-row">
+        <label for="ano">Ano:</label>
+        <input id="ano" name="ano" type="number" placeholder="2020" class="input small" required />
+      </div>
+
+      <div class="form-row">
+        <label for="marca">Marca:</label>
+        <input id="marca" name="marca" type="text" placeholder="Ex: Toyota" class="input" required />
+      </div>
+
+      <div class="form-row">
+        <label for="modelo">Modelo:</label>
+        <input id="modelo" name="modelo" type="text" placeholder="Ex: Corolla" class="input" required />
+      </div>
+
+      <div class="form-row">
+        <label for="km_atual">KM Atual:</label>
+        <input id="km_atual" name="km_atual" type="number" placeholder="50000" class="input small" required />
+      </div>
+
+      <div class="actions">
+        <button id="btnLimpar" type="button" class="btn btn-light">Limpar</button>
+        <button id="btnSalvar" type="button" class="btn btn-primary">Salvar</button>
+      </div>
+
+      <div id="mensagem" class="muted"></div>
+    </form>
+  </main>
+
+  <script src="/static/veiculo.js" defer></script>
+  {% endblock %}
+</body>
+</html>

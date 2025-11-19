@@ -1,86 +1,185 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from typing import List
-
-from app import schemas, crud
 from app.database import get_db
+from app import models, schemas, security
 
-# ============================================================
-# 1. Inicialização do roteador
-# ============================================================
+router = APIRouter()
 
-router = APIRouter(
-    prefix="/veiculos",      # URL base do módulo
-    tags=["Veículos"]        # Agrupa visualmente no Swagger
-)
-
-# ============================================================
-# 2. Endpoint: Criar novo veículo
-# ============================================================
-
-@router.post("/", response_model=schemas.VeiculoResponse, status_code=status.HTTP_201_CREATED)
-def criar_veiculo(veiculo: schemas.VeiculoCreate, db: Session = Depends(get_db)):
+def get_usuario_id_from_token(request: Request, db: Session) -> int:
     """
-    Cadastra um novo veículo no sistema.
-    - Requer JSON com: placa, modelo, marca, ano, km_atual, usuario_id.
+    Extrai o ID do usuário a partir do token JWT no cookie.
     """
-    novo_veiculo = crud.criar_veiculo(db, veiculo)
-    return novo_veiculo
+    token = request.cookies.get("access_token")
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuário não autenticado"
+        )
+    
+    usuario_data = security.verificar_token_seguro(token)
+    if not usuario_data:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido ou expirado"
+        )
+    
+    usuario_id = usuario_data.get("sub")
+    
+    # Se 'sub' for email, busca o ID do usuário no banco
+    if usuario_id and not str(usuario_id).isdigit():
+        result = db.execute(
+            text("SELECT id FROM usuarios WHERE email = :email"),
+            {"email": usuario_id}
+        ).fetchone()
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Usuário não encontrado"
+            )
+        usuario_id = result[0]
+    
+    return int(usuario_id)
 
-
-# ============================================================
-# 3. Endpoint: Listar veículos
-# ============================================================
-
-@router.get("/", response_model=List[schemas.VeiculoResponse])
-def listar_veiculos(db: Session = Depends(get_db)):
+@router.post("/", response_model=schemas.Veiculo, status_code=status.HTTP_201_CREATED)
+def criar_veiculo(
+    veiculo: schemas.VeiculoCreate,
+    request: Request,
+    db: Session = Depends(get_db)
+):
     """
-    Retorna a lista de todos os veículos cadastrados.
+    Cria um novo veículo e associa ao usuário logado.
     """
-    return crud.listar_veiculos(db)
+    usuario_id = get_usuario_id_from_token(request, db)
+    
+    # Verifica se já existe veículo com essa placa
+    veiculo_existente = db.query(models.Veiculo).filter(
+        models.Veiculo.placa == veiculo.placa
+    ).first()
+    
+    if veiculo_existente:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Já existe um veículo cadastrado com essa placa"
+        )
+    
+    # Cria o novo veículo
+    db_veiculo = models.Veiculo(
+        placa=veiculo.placa,
+        ano=veiculo.ano,
+        marca=veiculo.marca,
+        modelo=veiculo.modelo,
+        km_atual=veiculo.km_atual,
+        usuario_id=usuario_id
+    )
+    
+    db.add(db_veiculo)
+    db.commit()
+    db.refresh(db_veiculo)
+    
+    return db_veiculo
 
-
-# ============================================================
-# 4. Endpoint: Buscar veículo por ID
-# ============================================================
-
-@router.get("/{veiculo_id}", response_model=schemas.VeiculoResponse)
-def buscar_veiculo(veiculo_id: int, db: Session = Depends(get_db)):
+@router.get("/", response_model=List[schemas.Veiculo])
+def listar_veiculos(
+    request: Request,
+    db: Session = Depends(get_db),
+    skip: int = 0,
+    limit: int = 100
+):
     """
-    Busca um veículo específico pelo ID.
+    Lista todos os veículos do usuário logado.
     """
-    veiculo = crud.buscar_veiculo_por_id(db, veiculo_id)
+    usuario_id = get_usuario_id_from_token(request, db)
+    
+    veiculos = db.query(models.Veiculo).filter(
+        models.Veiculo.usuario_id == usuario_id
+    ).offset(skip).limit(limit).all()
+    
+    return veiculos
+
+@router.get("/{veiculo_id}", response_model=schemas.Veiculo)
+def obter_veiculo(
+    veiculo_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Obtém um veículo específico do usuário logado.
+    """
+    usuario_id = get_usuario_id_from_token(request, db)
+    
+    veiculo = db.query(models.Veiculo).filter(
+        models.Veiculo.id == veiculo_id,
+        models.Veiculo.usuario_id == usuario_id
+    ).first()
+    
     if not veiculo:
-        raise HTTPException(status_code=404, detail="Veículo não encontrado.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Veículo não encontrado"
+        )
+    
     return veiculo
 
-
-# ============================================================
-# 5. Endpoint: Atualizar veículo
-# ============================================================
-
-@router.put("/{veiculo_id}", response_model=schemas.VeiculoResponse)
-def atualizar_veiculo(veiculo_id: int, dados: schemas.VeiculoBase, db: Session = Depends(get_db)):
+@router.put("/{veiculo_id}", response_model=schemas.Veiculo)
+def atualizar_veiculo(
+    veiculo_id: int,
+    veiculo: schemas.VeiculoCreate,
+    request: Request,
+    db: Session = Depends(get_db)
+):
     """
-    Atualiza os dados de um veículo existente.
-    - Exemplo: alterar km_atual, modelo, marca.
+    Atualiza um veículo do usuário logado.
     """
-    veiculo_atualizado = crud.atualizar_veiculo(db, veiculo_id, dados)
-    if not veiculo_atualizado:
-        raise HTTPException(status_code=404, detail="Veículo não encontrado para atualização.")
-    return veiculo_atualizado
+    usuario_id = get_usuario_id_from_token(request, db)
+    
+    db_veiculo = db.query(models.Veiculo).filter(
+        models.Veiculo.id == veiculo_id,
+        models.Veiculo.usuario_id == usuario_id
+    ).first()
+    
+    if not db_veiculo:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Veículo não encontrado"
+        )
+    
+    # Atualiza os campos
+    db_veiculo.placa = veiculo.placa
+    db_veiculo.ano = veiculo.ano
+    db_veiculo.marca = veiculo.marca
+    db_veiculo.modelo = veiculo.modelo
+    db_veiculo.km_atual = veiculo.km_atual
+    
+    db.commit()
+    db.refresh(db_veiculo)
+    
+    return db_veiculo
 
-
-# ============================================================
-# 6. Endpoint: Excluir veículo
-# ============================================================
-
-@router.delete("/{veiculo_id}", response_model=schemas.VeiculoResponse)
-def excluir_veiculo(veiculo_id: int, db: Session = Depends(get_db)):
+@router.delete("/{veiculo_id}", status_code=status.HTTP_204_NO_CONTENT)
+def deletar_veiculo(
+    veiculo_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
     """
-    Exclui um veículo do banco de dados.
+    Deleta um veículo do usuário logado.
     """
-    veiculo = crud.excluir_veiculo(db, veiculo_id)
-    if not veiculo:
-        raise HTTPException(status_code=404, detail="Veículo não encontrado para exclusão.")
-    return veiculo
+    usuario_id = get_usuario_id_from_token(request, db)
+    
+    db_veiculo = db.query(models.Veiculo).filter(
+        models.Veiculo.id == veiculo_id,
+        models.Veiculo.usuario_id == usuario_id
+    ).first()
+    
+    if not db_veiculo:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Veículo não encontrado"
+        )
+    
+    db.delete(db_veiculo)
+    db.commit()
+    
+    return None

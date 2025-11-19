@@ -2,81 +2,53 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Manutenção Veicular — Piloto</title>
+  <title>Dashboard - Manutenção Veicular</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/nav.js" defer></script>
   <script src="/static/app.js" defer></script>
-  <style>
-    body { font-family: Arial, Helvetica, sans-serif; margin: 20px; max-width:1100px; }
-    section { border:1px solid #ddd; padding:12px; margin-bottom:12px; border-radius:6px; }
-    h1 { margin-bottom:10px; }
-    label { display:block; margin-top:6px; }
-    input, select, button, textarea { padding:6px; margin-top:4px; width:100%; max-width:400px; box-sizing:border-box; }
-    .row { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
-    ul { padding-left:18px; }
-    .small { max-width:200px; }
-    .inline { display:inline-block; width:auto; }
-    .muted { color:#666; font-size:0.9em; }
-  </style>
 </head>
-<body>
-  <h1>Manutenção Veicular — Piloto</h1>
+<body class="ui-bg">
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-title">Manutencao</div>
+        <button id="btnToggle" class="hamburger" aria-label="Abrir menu">☰</button>
+      </div>
 
-  <!-- Usuários -->
-  <section id="sec-usuarios">
-    <h2>Usuários</h2>
-    <div class="row">
-      <input id="nome" placeholder="Nome" class="small" />
-      <input id="email" placeholder="Email" class="small" />
-      <input id="senha" placeholder="Senha" type="password" class="small" />
-      <button id="criarUsuario" class="inline">Criar</button>
-    </div>
-    <div id="criarMsg" class="muted"></div>
-    <div style="margin-top:8px;">
-      <button id="carregarUsuarios">Carregar usuários</button>
-      <ul id="listaUsuarios"></ul>
-    </div>
-  </section>
+      <nav class="nav">
+        <a class="nav-item" href="/">Início</a>
+        <a class="nav-item" href="/ui/veiculo">Cadastro de Veículo</a>
+        <a class="nav-item" href="/ui/manutencao">Registrar Manutenção</a>
+        <a class="nav-item" href="/ui/manutencoes">Relatório de Manutenções</a>
+      </nav>
 
-  <!-- Veículos -->
-  <section id="sec-veiculos">
-    <h2>Veículos</h2>
-    <div class="row">
-      <input id="v_placa" placeholder="Placa" class="small" />
-      <input id="v_modelo" placeholder="Modelo" class="small" />
-      <input id="v_marca" placeholder="Marca" class="small" />
-      <input id="v_ano" placeholder="Ano" type="number" class="small" />
-      <input id="v_km" placeholder="Km atual" type="number" class="small" />
-      <input id="v_usuario_id" placeholder="Usuario ID (dono)" type="number" class="small" />
-      <button id="criarVeiculo" class="inline">Criar Veículo</button>
-    </div>
-    <div id="criarVeiculoMsg" class="muted"></div>
-    <div style="margin-top:8px;">
-      <button id="carregarVeiculos">Carregar veículos</button>
-      <ul id="listaVeiculos"></ul>
-    </div>
-  </section>
+      <div class="sidebar-footer">
+        <small>v1.1</small>
+      </div>
+    </aside>
 
-  <!-- Manutenções -->
-  <section id="sec-manutencoes">
-    <h2>Manutenções</h2>
-    <div class="row">
-      <input id="m_veiculo_id" placeholder="Veículo ID" type="number" class="small" />
-      <input id="m_data" placeholder="Data (AAAA-MM-DD)" class="small" />
-      <input id="m_km" placeholder="Km" type="number" class="small" />
-      <input id="m_tipo" placeholder="Tipo (ex.: troca óleo)" class="small" />
-      <input id="m_custo" placeholder="Custo" type="number" step="0.01" class="small" />
-      <input id="m_prestador" placeholder="Prestador de serviço" class="small" />
-    </div>
-    <label>Descrição</label>
-    <textarea id="m_descricao" rows="3" style="max-width:600px;"></textarea>
-    <div style="margin-top:6px;">
-      <button id="criarManutencao">Criar Manutenção</button>
-      <div id="criarManutencaoMsg" class="muted"></div>
-    </div>
+    <main class="content" id="content">
+      <!-- mantém seção principal já existente (index content) -->
+      <section class="card welcome-card">
+        <header class="card-header">
+          <h1>Bem-vindo ao Sistema de Manutenção Veicular</h1>
+        </header>
+        <div class="card-body">
+          <p>Use o menu lateral para navegar entre as funcionalidades do sistema:</p>
+          <ul>
+            <li><strong>Cadastrar Veículo:</strong> Registre seus veículos no sistema</li>
+            <li><strong>Cadastrar Manutenção:</strong> Registre as manutenções realizadas</li>
+            <li><strong>Relatório de Manutenções:</strong> Visualize o histórico de manutenções</li>
+          </ul>
+        </div>
+      </section>
 
-    <div style="margin-top:8px;">
-      <button id="carregarManutencoes">Carregar manutenções</button>
-      <ul id="listaManutencoes"></ul>
-    </div>
-  </section>
+      <!-- mantém seções compactas existentes (opcionais) -->
+      <section id="sec-usuarios" class="compact-section"></section>
+      <section id="sec-veiculos" class="compact-section"></section>
+      <section id="sec-manutencoes" class="compact-section"></section>
+    </main>
+  </div>
 </body>
 </html>
