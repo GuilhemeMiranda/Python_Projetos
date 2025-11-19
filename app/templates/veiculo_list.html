@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Meus Veículos{% endblock %}
+
+{% block content %}
+<main class="card report-card" aria-label="Lista de Veículos">
+  <header class="card-header">
+    <h1>Meus Veículos</h1>
+  </header>
+
+  <section class="report-controls">
+    <div class="row">
+      <button id="refreshList" class="btn btn-primary">Atualizar</button>
+      <input id="filterPlaca" placeholder="Filtrar por Placa" class="input small" />
+      <button id="applyFilter" class="btn btn-light">Filtrar</button>
+      <button id="clearFilter" class="btn btn-light">Limpar</button>
+    </div>
+  </section>
+
+  <section class="table-wrap">
+    <table id="veiculoTable" class="table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Placa</th>
+          <th>Marca</th>
+          <th>Modelo</th>
+          <th>Ano</th>
+          <th>KM Atual</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div id="listMsg" class="muted"></div>
+  </section>
+</main>
+
+<!-- Modal de Edição -->
+<div id="editModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Editar Veículo</h2>
+      <button class="close-btn" id="closeEditModal">&times;</button>
+    </div>
+    <form id="editForm" class="form-vertical">
+      <input type="hidden" id="edit_id" />
+      
+      <div class="form-row">
+        <label for="edit_placa">Placa:</label>
+        <input id="edit_placa" type="text" class="input" disabled />
+        <small class="muted">A placa não pode ser alterada</small>
+      </div>
+
+      <div class="form-row">
+        <label for="edit_marca">Marca:</label>
+        <input id="edit_marca" type="text" class="input" required />
+      </div>
+
+      <div class="form-row">
+        <label for="edit_modelo">Modelo:</label>
+        <input id="edit_modelo" type="text" class="input" required />
+      </div>
+
+      <div class="form-row">
+        <label for="edit_ano">Ano:</label>
+        <input id="edit_ano" type="number" class="input small" required />
+      </div>
+
+      <div class="form-row">
+        <label for="edit_km_atual">KM Atual:</label>
+        <input id="edit_km_atual" type="number" class="input small" required />
+      </div>
+
+      <div class="actions">
+        <button type="button" id="btnCancelarEdit" class="btn btn-light">Cancelar</button>
+        <button type="button" id="btnSalvarEdit" class="btn btn-primary">Salvar Alterações</button>
+      </div>
+
+      <div id="editMsg" class="muted"></div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div id="deleteModal" class="modal" style="display:none;">
+  <div class="modal-content modal-small">
+    <div class="modal-header">
+      <h2>Confirmar Exclusão</h2>
+      <button class="close-btn" id="closeDeleteModal">&times;</button>
+    </div>
+    <div class="modal-body" style="padding: 24px;">
+      <p>Tem certeza que deseja excluir o veículo <strong id="deletePlaca"></strong>?</p>
+      <p class="muted" style="color: #dc3545; font-weight: 600;">Esta ação não pode ser desfeita!</p>
+      
+      <div class="actions" style="margin-top: 24px;">
+        <button type="button" id="btnCancelarDelete" class="btn btn-light">Cancelar</button>
+        <button type="button" id="btnConfirmarDelete" class="btn btn-danger">Excluir</button>
+      </div>
+
+      <div id="deleteMsg" class="muted" style="margin-top: 16px;"></div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/veiculo_list.js" defer></script>
+{% endblock %}

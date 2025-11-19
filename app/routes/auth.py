@@ -1,127 +1,59 @@
-from fastapi import APIRouter, Depends, Request, status
-from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
-from fastapi import Body, Form
+from fastapi import APIRouter, Request, Depends, status
+from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from typing import Optional, Any, Dict
 
 from app.database import get_db
-
-from app import security, crud
+from app import security, models
 
 router = APIRouter()
-# rota de UI login (se já existir em templates)
-@router.get("/ui/login", include_in_schema=False)
-def ui_login(request: Request):
-    from fastapi.templating import Jinja2Templates
-    templates = Jinja2Templates(directory="app/templates")
-    return templates.TemplateResponse("login.html", {"request": request})
 
-def _get_user_by_email(db: Session, email: str) -> Optional[Any]:
-    # tenta várias funções comuns no crud para recuperar usuário por email
-    candidates = [
-        "authenticate_user",
-        "get_usuario_por_email",
-        "get_user_by_email",
-        "get_usuario",
-        "get_user",
-        "find_user_by_email",
-    ]
-    for name in candidates:
-        fn = getattr(crud, name, None)
-        if callable(fn):
-            try:
-                # algumas funções exigem apenas (db, email)
-                res = fn(db, email=email) if "email" in fn.__code__.co_varnames else fn(db, email)
-                if res:
-                    return res
-            except Exception:
-                continue
-
-    # fallback: tenta consulta genérica via crud.list / get all e filtra
-    if hasattr(crud, "get_usuarios"):
-        try:
-            users = crud.get_usuarios(db=db, skip=0, limit=1000)
-            for u in users:
-                em = getattr(u, "email", None) or (u.get("email") if isinstance(u, dict) else None)
-                if em and em.lower() == email.lower():
-                    return u
-        except Exception:
-            pass
-
-    # fallback final: consulta direta SQL na tabela 'usuarios' (caso crud não esteja disponível)
+def _get_user_by_email(db: Session, email: str):
+    """Busca usuário por email de forma segura."""
     try:
-        if db is not None:
-            stmt = text("SELECT * FROM usuarios WHERE lower(email)=lower(:email) LIMIT 1")
-            res = db.execute(stmt, {"email": email}).mappings().first()
-            if res:
-                # retorna um dict-like para o restante do código funcionar
-                return dict(res)
-    except Exception:
-        pass
+        result = db.execute(
+            text("SELECT * FROM usuarios WHERE email = :email"),
+            {"email": email}
+        ).fetchone()
+        return result
+    except Exception as e:
+        print(f"Erro ao buscar usuário: {e}")
+        return None
 
-    return None
-
-def _extract_password_field(user: Any) -> Optional[str]:
-    # tenta várias propriedades possíveis onde a senha pode estar armazenada
-    keys = ["senha_hash", "senha", "password_hash", "password", "pwd", "hash"]
+def _extract_email_field(user):
+    """Extrai o campo de email de diferentes formatos de usuário."""
     if user is None:
         return None
-    # se for dict-like
+    if hasattr(user, "email"):
+        return user.email
     if isinstance(user, dict):
-        for k in keys:
-            if k in user and user[k] is not None:
-                return user[k]
-        # aliases
-        for k in user.keys():
-            kl = k.lower()
-            if any(x in kl for x in ("senha","pass","pwd","hash")):
-                return user[k]
+        return user.get("email")
+    if hasattr(user, "_mapping"):
+        return user._mapping.get("email")
+    try:
+        return user[1] if len(user) > 1 else None
+    except (TypeError, IndexError):
         return None
-    # objeto SQLAlchemy / model
-    for k in keys:
-        if hasattr(user, k):
-            val = getattr(user, k)
-            if val is not None:
-                return val
-    # tentar inspecionar todos attrs
-    for attr in dir(user):
-        la = attr.lower()
-        if any(x in la for x in ("senha","password","pwd","hash")):
-            try:
-                val = getattr(user, attr)
-                if not callable(val) and val is not None:
-                    return val
-            except Exception:
-                continue
-    return None
 
-def _extract_email_field(user: Any) -> Optional[str]:
+def _extract_password_field(user):
+    """Extrai o campo de senha de diferentes formatos de usuário."""
     if user is None:
         return None
+    if hasattr(user, "senha_hash"):
+        return user.senha_hash
     if isinstance(user, dict):
-        return user.get("email") or user.get("Email")
-    for attr in ("email", "Email"):
-        if hasattr(user, attr):
-            try:
-                return getattr(user, attr)
-            except Exception:
-                continue
-    # fallback inspect
-    for attr in dir(user):
-        if "email" in attr.lower():
-            try:
-                val = getattr(user, attr)
-                if isinstance(val, str):
-                    return val
-            except Exception:
-                continue
-    return None
+        return user.get("senha_hash")
+    if hasattr(user, "_mapping"):
+        return user._mapping.get("senha_hash")
+    try:
+        return user[2] if len(user) > 2 else None
+    except (TypeError, IndexError):
+        return None
 
 @router.post("/auth/login")
 async def api_login(request: Request, db: Session = Depends(get_db)):
     """
-    Lê o corpo diretamente (aceita JSON puro) e autentica.
+    Autentica o usuário e retorna token JWT.
     """
     try:
         payload = await request.json()
@@ -136,15 +68,24 @@ async def api_login(request: Request, db: Session = Depends(get_db)):
     senha = payload.get("senha") or payload.get("password") or ""
 
     if not email or not senha:
-        return JSONResponse({"detail": "email e senha são obrigatórios"}, status_code=status.HTTP_400_BAD_REQUEST)
+        return JSONResponse(
+            {"detail": "E-mail e senha são obrigatórios"},
+            status_code=status.HTTP_400_BAD_REQUEST
+        )
 
     user = _get_user_by_email(db, email)
     if not user:
-        return JSONResponse({"detail": "credenciais inválidas"}, status_code=status.HTTP_401_UNAUTHORIZED)
+        return JSONResponse(
+            {"detail": "E-mail ou senha inválidos"},
+            status_code=status.HTTP_401_UNAUTHORIZED
+        )
 
     stored = _extract_password_field(user)
     if stored is None:
-        return JSONResponse({"detail": "credenciais inválidas"}, status_code=status.HTTP_401_UNAUTHORIZED)
+        return JSONResponse(
+            {"detail": "E-mail ou senha inválidos"},
+            status_code=status.HTTP_401_UNAUTHORIZED
+        )
 
     if isinstance(stored, str) and stored == senha:
         authenticated = True
@@ -155,28 +96,89 @@ async def api_login(request: Request, db: Session = Depends(get_db)):
             authenticated = False
 
     if not authenticated:
-        return JSONResponse({"detail": "credenciais inválidas"}, status_code=status.HTTP_401_UNAUTHORIZED)
+        return JSONResponse(
+            {"detail": "E-mail ou senha inválidos"},
+            status_code=status.HTTP_401_UNAUTHORIZED
+        )
 
     uid = getattr(user, "id", None) or getattr(user, "pk", None) or (user.get("id") if isinstance(user, dict) else None)
     uemail = _extract_email_field(user) or email
+    
     token = security.criar_token_acesso({"sub": str(uid) if uid is not None else uemail, "email": uemail})
-    resp = JSONResponse({"msg": "ok", "redirect": "/ui/dashboard"})  # Adiciona redirect
+    resp = JSONResponse({"msg": "ok", "redirect": "/ui/dashboard"})
     resp.set_cookie(key="access_token", value=token, httponly=True, samesite="lax", path="/")
     return resp
 
-@router.get("/auth/logout", include_in_schema=False)
-def api_logout_get():
+@router.post("/auth/registro")
+async def api_registro(request: Request, db: Session = Depends(get_db)):
     """
-    Logout via GET: remove cookie e redireciona para a tela de login.
-    Compatível com navegação por window.location.href.
+    Registra um novo usuário no sistema.
     """
-    resp = RedirectResponse(url="/ui/login", status_code=302)
-    resp.delete_cookie("access_token", path="/")
-    return resp
+    try:
+        payload = await request.json()
+    except Exception:
+        return JSONResponse(
+            {"detail": "Dados inválidos"},
+            status_code=status.HTTP_400_BAD_REQUEST
+        )
 
-@router.post("/auth/logout")
+    nome = payload.get("nome", "").strip()
+    email = payload.get("email", "").strip()
+    senha = payload.get("senha", "")
+
+    # Validações
+    if not nome or not email or not senha:
+        return JSONResponse(
+            {"detail": "Todos os campos são obrigatórios"},
+            status_code=status.HTTP_400_BAD_REQUEST
+        )
+
+    if len(senha) < 6:
+        return JSONResponse(
+            {"detail": "A senha deve ter no mínimo 6 caracteres"},
+            status_code=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Verifica se o email já existe
+    user_exists = _get_user_by_email(db, email)
+    if user_exists:
+        return JSONResponse(
+            {"detail": "E-mail já cadastrado"},
+            status_code=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Cria o hash da senha
+    senha_hash = security.gerar_hash_senha(senha)
+
+    # Insere o novo usuário
+    try:
+        db.execute(
+            text("INSERT INTO usuarios (nome, email, senha_hash) VALUES (:nome, :email, :senha_hash)"),
+            {"nome": nome, "email": email, "senha_hash": senha_hash}
+        )
+        db.commit()
+
+        # Busca o usuário criado
+        novo_usuario = _get_user_by_email(db, email)
+        uid = getattr(novo_usuario, "id", None) or (novo_usuario.get("id") if isinstance(novo_usuario, dict) else None)
+
+        return JSONResponse(
+            {"msg": "Usuário cadastrado com sucesso", "id": uid, "email": email},
+            status_code=status.HTTP_201_CREATED
+        )
+    except Exception as e:
+        db.rollback()
+        print(f"Erro ao criar usuário: {e}")
+        return JSONResponse(
+            {"detail": "Erro ao cadastrar usuário"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@router.get("/auth/logout")
 def api_logout():
-    # retorna JSON e remove cookie com path="/"
-    resp = JSONResponse({"msg": "logout"})
+    """
+    Faz logout do usuário removendo o token.
+    """
+    resp = RedirectResponse("/ui/login", status_code=status.HTTP_302_FOUND)
     resp.delete_cookie("access_token", path="/")
     return resp

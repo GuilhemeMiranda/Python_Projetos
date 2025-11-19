@@ -13,13 +13,21 @@
 
   {% block content %}
   <main class="card report-card" aria-label="Relatório de Manutenções">
-    <header class="card-header"><h1>Relatório de Manutenções</h1></header>
+    <header class="card-header">
+      <h1>Relatório de Manutenções</h1>
+    </header>
 
     <section class="report-controls">
       <div class="row">
         <button id="refreshReport" class="btn btn-primary">Atualizar</button>
-        <input id="filterVeiculo" placeholder="Filtrar por Placa" class="input small" />
+        <input 
+          id="filterVeiculo" 
+          type="text" 
+          placeholder="Filtrar por placa" 
+          class="input small"
+        />
         <button id="applyFilter" class="btn btn-light">Filtrar</button>
+        <button id="clearFilter" class="btn btn-light">Limpar</button>
       </div>
     </section>
 
@@ -34,15 +42,137 @@
             <th>Tipo</th>
             <th>Prestador</th>
             <th>Custo</th>
+            <th>Ações</th>
           </tr>
         </thead>
-        <tbody></tbody>
+        <tbody>
+          <!-- Preenchido via JavaScript -->
+        </tbody>
       </table>
       <div id="reportMsg" class="muted"></div>
     </section>
   </main>
 
-  <script src="/static/manutencao.js" defer></script>
+  <!-- Modal de Edição -->
+  <div id="editModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Editar Manutenção</h2>
+        <button id="closeModal" class="close-btn">&times;</button>
+      </div>
+      
+      <form id="editForm" class="form-vertical">
+        <input type="hidden" id="edit_id" />
+        
+        <div class="form-row">
+          <label for="edit_placa">Placa do Veículo:</label>
+          <input
+            id="edit_placa"
+            type="text"
+            class="input"
+            disabled
+          />
+          <small class="muted">A placa não pode ser alterada</small>
+        </div>
+
+        <div class="form-row">
+          <label for="edit_data">Data da Manutenção:</label>
+          <input
+            id="edit_data"
+            type="date"
+            class="input"
+            required
+          />
+        </div>
+
+        <div class="form-row">
+          <label for="edit_km">KM na Manutenção:</label>
+          <input
+            id="edit_km"
+            type="number"
+            class="input small"
+            min="0"
+            required
+          />
+        </div>
+
+        <div class="form-row">
+          <label for="edit_tipo">Tipo de Manutenção:</label>
+          <input
+            id="edit_tipo"
+            type="text"
+            class="input"
+            placeholder="Ex: Troca de óleo, Revisão, Pneus..."
+            required
+          />
+        </div>
+
+        <div class="form-row">
+          <label for="edit_prestador">Prestador de Serviço:</label>
+          <input
+            id="edit_prestador"
+            type="text"
+            class="input"
+            placeholder="Ex: Oficina XYZ, Posto ABC..."
+            required
+          />
+        </div>
+
+        <div class="form-row">
+          <label for="edit_custo">Custo (R$):</label>
+          <input
+            id="edit_custo"
+            type="number"
+            step="0.01"
+            min="0.01"
+            class="input small"
+            placeholder="0.00"
+            required
+          />
+        </div>
+
+        <div class="form-row">
+          <label for="edit_observacoes">Observações:</label>
+          <textarea
+            id="edit_observacoes"
+            rows="3"
+            class="input"
+            placeholder="Observações adicionais sobre a manutenção..."
+          ></textarea>
+        </div>
+
+        <div class="actions">
+          <button id="cancelEdit" type="button" class="btn btn-light">Cancelar</button>
+          <button id="saveEdit" type="button" class="btn btn-primary">Salvar Alterações</button>
+        </div>
+
+        <div id="editMsg" class="muted"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmação de Exclusão -->
+  <div id="deleteModal" class="modal" style="display:none;">
+    <div class="modal-content modal-small">
+      <div class="modal-header">
+        <h2>Confirmar Exclusão</h2>
+        <button id="closeDeleteModal" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 24px;">
+        <p>Tem certeza que deseja excluir esta manutenção?</p>
+        <p class="muted" style="color: #dc3545; font-weight: 600;">Esta ação não pode ser desfeita!</p>
+        
+        <div class="actions" style="margin-top: 24px;">
+          <button type="button" id="btnCancelarDelete" class="btn btn-light">Cancelar</button>
+          <button type="button" id="btnConfirmarDelete" class="btn btn-danger">Excluir</button>
+        </div>
+
+        <div id="deleteMsg" class="muted" style="margin-top: 16px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/manutencao_report.js" defer></script>
   {% endblock %}
 </body>
 </html>

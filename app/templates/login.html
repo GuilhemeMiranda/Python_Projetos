@@ -1,30 +1,48 @@
 <!doctype html>
-<html>
+<html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <title>Login — Manutenção Veicular</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Manutenção Veicular</title>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/styles.css">
-  <script src="/static/auth.js" defer></script>
 </head>
 <body class="ui-bg">
-  <main class="card form-card" aria-label="Login">
-    <header class="card-header"><h1>Entrar</h1></header>
+  <div class="login-container">
+    <div class="card login-card">
+      <header class="card-header">
+        <h1>Sistema de Manutenção Veicular</h1>
+        <p>Faça login para acessar o sistema</p>
+      </header>
+      
+      <form id="loginForm" class="form-vertical">
+        <div class="form-row">
+          <label for="email">E-mail:</label>
+          <input id="email" name="email" type="email" placeholder="seu.email@exemplo.com" class="input" required autofocus />
+        </div>
 
-    <form id="loginForm" class="form-vertical" onsubmit="return false;">
-      <div class="form-row">
-        <input id="email" name="email" placeholder="Email" class="input" />
-      </div>
-      <div class="form-row">
-        <input id="senha" name="senha" placeholder="Senha" type="password" class="input" />
-      </div>
+        <div class="form-row">
+          <label for="senha">Senha:</label>
+          <input id="senha" name="senha" type="password" placeholder="********" class="input" required />
+        </div>
 
-      <div class="actions">
-        <button id="btnLogin" type="button" class="btn btn-primary">Entrar</button>
-      </div>
+        <div class="actions">
+          <button id="btnLogin" type="button" class="btn btn-primary btn-block">Entrar</button>
+        </div>
 
-      <div id="loginMsg" class="muted"></div>
-    </form>
-  </main>
+        <div class="actions">
+          <button id="btnRegistrar" type="button" class="btn btn-light btn-block">Criar Nova Conta</button>
+        </div>
+
+        <div id="loginMsg" class="muted"></div>
+      </form>
+
+      <footer class="login-footer">
+        <small>v1.2</small>
+      </footer>
+    </div>
+  </div>
+
+  <script src="/static/auth.js" defer></script>
 </body>
 </html>

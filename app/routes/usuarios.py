@@ -7,60 +7,37 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from app import schemas, crud
+from app import crud, schemas
 from app.database import get_db
 
 # ============================================================
-# 1. Inicialização do roteador
+# Inicialização do roteador
 # ============================================================
 
-router = APIRouter(
-    prefix="/usuarios",
-    tags=["Usuários"]
-)
+router = APIRouter()  # SEM prefix aqui
 
 # ============================================================
-# 2. Endpoint: Criar novo usuário
+# Rotas de Usuários
 # ============================================================
 
 @router.post("/", response_model=schemas.UsuarioResponse, status_code=status.HTTP_201_CREATED)
 def criar_usuario(usuario: schemas.UsuarioCreate, db: Session = Depends(get_db)):
-    """
-    Cadastra um novo usuário.
-    - Requer: nome, email e senha.
-    - O e-mail deve ser único.
-    """
-    usuario_existente = crud.buscar_usuario_por_email(db, usuario.email)
-    if usuario_existente:
-        raise HTTPException(status_code=400, detail="E-mail já cadastrado.")
-
-    novo_usuario = crud.criar_usuario(db, usuario)
-    return novo_usuario
-
-
-# ============================================================
-# 3. Endpoint: Listar usuários
-# ============================================================
+    """Cria um novo usuário."""
+    db_usuario = crud.get_usuario_by_email(db, email=usuario.email)
+    if db_usuario:
+        raise HTTPException(status_code=400, detail="Email já cadastrado")
+    return crud.create_usuario(db=db, usuario=usuario)
 
 @router.get("/", response_model=List[schemas.UsuarioResponse])
-def listar_usuarios(db: Session = Depends(get_db)):
-    """
-    Retorna todos os usuários cadastrados.
-    """
-    return crud.listar_usuarios(db)
+def listar_usuarios(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    """Lista todos os usuários."""
+    usuarios = crud.get_usuarios(db, skip=skip, limit=limit)
+    return usuarios
 
-
-# ============================================================
-# 4. Endpoint: Buscar usuário por e-mail
-# ============================================================
-
-@router.get("/buscar", response_model=schemas.UsuarioResponse)
-def buscar_usuario(email: str, db: Session = Depends(get_db)):
-    """
-    Busca um usuário pelo e-mail.
-    Exemplo de uso: /usuarios/buscar?email=teste@exemplo.com
-    """
-    usuario = crud.buscar_usuario_por_email(db, email)
-    if not usuario:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
-    return usuario
+@router.get("/{usuario_id}", response_model=schemas.UsuarioResponse)
+def obter_usuario(usuario_id: int, db: Session = Depends(get_db)):
+    """Obtém um usuário específico por ID."""
+    db_usuario = crud.get_usuario(db, usuario_id=usuario_id)
+    if db_usuario is None:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    return db_usuario

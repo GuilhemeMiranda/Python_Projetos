@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro - Manutenção Veicular</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body class="ui-bg">
+  <div class="login-container">
+    <div class="card login-card">
+      <header class="card-header">
+        <h1>Criar Nova Conta</h1>
+        <p>Preencha os dados para se cadastrar</p>
+      </header>
+      
+      <form id="registroForm" class="form-vertical">
+        <div class="form-row">
+          <label for="nome">Nome Completo:</label>
+          <input id="nome" name="nome" type="text" placeholder="Seu Nome" class="input" required autofocus />
+        </div>
+
+        <div class="form-row">
+          <label for="email">E-mail:</label>
+          <input id="email" name="email" type="email" placeholder="seu.email@exemplo.com" class="input" required />
+        </div>
+
+        <div class="form-row">
+          <label for="senha">Senha:</label>
+          <input id="senha" name="senha" type="password" placeholder="Mínimo 6 caracteres" class="input" required minlength="6" />
+        </div>
+
+        <div class="form-row">
+          <label for="confirmarSenha">Confirmar Senha:</label>
+          <input id="confirmarSenha" name="confirmarSenha" type="password" placeholder="Digite a senha novamente" class="input" required minlength="6" />
+        </div>
+
+        <div class="actions">
+          <button id="btnRegistrar" type="button" class="btn btn-primary btn-block">Cadastrar</button>
+        </div>
+
+        <div class="actions">
+          <button id="btnVoltar" type="button" class="btn btn-light btn-block">Voltar para Login</button>
+        </div>
+
+        <div id="registroMsg" class="muted"></div>
+      </form>
+
+      <footer class="login-footer">
+        <small>v1.2</small>
+      </footer>
+    </div>
+  </div>
+
+  <script src="/static/registro.js" defer></script>
+</body>
+</html>

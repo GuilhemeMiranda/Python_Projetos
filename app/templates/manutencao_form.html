@@ -2,39 +2,272 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Registro de Manutenção</title>
+  <title>Cadastro de Manutenção</title>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/styles.css">
-  <script src="/static/manutencao.js" defer></script>
+  <script src="/static/manutencao_form.js" defer></script>
 </head>
 <body class="ui-bg">
   {% extends "base.html" %}
-  {% block title %}Registro de Manutenção{% endblock %}
+  {% block title %}Cadastrar Manutenção{% endblock %}
 
   {% block content %}
-  <main class="card form-card" aria-label="Registro de Manutenção">
-    <header class="card-header"><h1>Registro de Manutenção</h1></header>
+  <main class="card" aria-label="Formulário de Cadastro de Manutenção">
+    <header class="card-header">
+      <h1>Cadastrar Manutenção</h1>
+    </header>
 
-    <form id="manutForm" class="form-vertical" onsubmit="return false;">
+    <form id="manutencaoForm" class="form-vertical">
       <div class="form-row">
-        <input id="m_veiculo_id" name="veiculo_id" placeholder="ID do Veículo" type="number" class="input small" />
-        <input id="m_data" name="data" placeholder="Data (AAAA-MM-DD)" class="input small" />
+        <label for="m_placa">Placa do Veículo:</label>
+        <input
+          id="m_placa"
+          name="placa"
+          type="text"
+          placeholder="ABC-1234 ou ABC1234"
+          class="input"
+          required
+          autofocus
+        />
+        <small class="muted">Digite a placa do veículo cadastrado (com ou sem hífen)</small>
       </div>
+
       <div class="form-row">
-        <input id="m_km" name="km" placeholder="KM" type="number" class="input small" />
-        <input id="m_tipo" name="tipo_manutencao" placeholder="Tipo de Manutenção" class="input" />
+        <label for="m_data">Data da Manutenção:</label>
+        <input
+          id="m_data"
+          name="data"
+          type="date"
+          class="input"
+          required
+        />
       </div>
-      <label class="label">Descrição</label>
-      <textarea id="m_descricao" name="descricao" rows="4" class="input textarea"></textarea>
+
+      <div class="form-row">
+        <label for="m_km">KM na Manutenção:</label>
+        <input
+          id="m_km"
+          name="km"
+          type="number"
+          placeholder="Ex: 50000"
+          class="input small"
+          min="0"
+          required
+        />
+        <small class="muted">O KM do veículo será atualizado automaticamente</small>
+      </div>
+
+      <div class="form-row">
+        <label for="m_tipo">Tipo de Manutenção:</label>
+        <input
+          id="m_tipo"
+          name="tipo_manutencao"
+          type="text"
+          placeholder="Ex: Troca de óleo, Revisão"
+          class="input"
+          required
+        />
+      </div>
+
+      <div class="form-row">
+        <label for="m_prestador">Prestador de Serviço:</label>
+        <input
+          id="m_prestador"
+          name="prestador"
+          type="text"
+          placeholder="Nome da oficina ou mecânico"
+          class="input"
+          required
+        />
+      </div>
+
+      <div class="form-row">
+        <label for="m_custo">Custo (R$):</label>
+        <input
+          id="m_custo"
+          name="custo"
+          type="number"
+          step="0.01"
+          min="0.01"
+          placeholder="0.00"
+          class="input small"
+          required
+        />
+      </div>
+
+      <div class="form-row">
+        <label for="m_observacoes">Observações:</label>
+        <textarea
+          id="m_observacoes"
+          name="observacoes"
+          rows="3"
+          placeholder="Informações adicionais (opcional)"
+          class="input"
+        ></textarea>
+      </div>
 
       <div class="actions">
+        <button id="salvarManut" type="button" class="btn btn-primary">Salvar Manutenção</button>
         <button id="limparManut" type="button" class="btn btn-light">Limpar</button>
-        <button id="salvarManut" type="button" class="btn btn-primary">Salvar</button>
       </div>
 
       <div id="manutMsg" class="muted"></div>
     </form>
   </main>
+
+  <script>
+// Script inline para o formulário de manutenção
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('Formulário de manutenção carregado');
+
+  const salvarBtn = document.getElementById('salvarManut');
+  const limparBtn = document.getElementById('limparManut');
+  const msg = document.getElementById('manutMsg');
+
+  const hoje = new Date().toISOString().split('T')[0];
+  const dataInput = document.getElementById('m_data');
+  if (dataInput && !dataInput.value) {
+    dataInput.value = hoje;
+  }
+
+  async function postarManutencao() {
+    if (!msg) {
+      console.error('Elemento manutMsg não encontrado');
+      return;
+    }
+    
+    msg.textContent = '';
+    msg.className = 'muted';
+
+    const placaEl = document.getElementById('m_placa');
+    const dataEl = document.getElementById('m_data');
+    const kmEl = document.getElementById('m_km');
+    const tipoEl = document.getElementById('m_tipo');
+    const prestadorEl = document.getElementById('m_prestador');
+    const custoEl = document.getElementById('m_custo');
+    const observacoesEl = document.getElementById('m_observacoes');
+
+    if (!placaEl || !dataEl || !kmEl || !tipoEl || !prestadorEl || !custoEl) {
+      console.error('Elementos do formulário não encontrados');
+      msg.textContent = 'Erro: Formulário incompleto';
+      msg.className = 'muted error';
+      return;
+    }
+
+    const placa = placaEl.value.trim().toUpperCase();
+    const data = dataEl.value;
+    const km = parseInt(kmEl.value) || 0;
+    const tipo_manutencao = tipoEl.value.trim();
+    const prestador = prestadorEl.value.trim();
+    const custo = parseFloat(custoEl.value) || 0;
+    const observacoes = observacoesEl ? observacoesEl.value.trim() : '';
+
+    console.log('Valores capturados:', {
+      placa, data, km, tipo_manutencao, prestador, custo, observacoes
+    });
+
+    if (!placa || !data || !km || !tipo_manutencao || !prestador || !custo) {
+      msg.textContent = 'Todos os campos obrigatórios devem ser preenchidos.';
+      msg.className = 'muted error';
+      return;
+    }
+
+    if (km <= 0) {
+      msg.textContent = 'A quilometragem deve ser maior que zero.';
+      msg.className = 'muted error';
+      return;
+    }
+
+    if (custo <= 0) {
+      msg.textContent = 'O custo deve ser maior que zero.';
+      msg.className = 'muted error';
+      return;
+    }
+
+    const payload = {
+      placa,
+      data,
+      km,
+      tipo_manutencao,
+      prestador,
+      custo,
+      observacoes: observacoes || null
+    };
+
+    console.log('Payload:', JSON.stringify(payload, null, 2));
+    msg.textContent = 'Salvando...';
+
+    try {
+      const res = await fetch('/manutencoes/', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      console.log('Status:', res.status);
+
+      if (res.ok) {
+        const data = await res.json();
+        console.log('Sucesso:', data);
+        msg.textContent = 'Manutenção cadastrada com sucesso!';
+        msg.className = 'muted success';
+        
+        setTimeout(() => {
+          limparFormulario();
+        }, 2000);
+        return;
+      }
+
+      const contentType = res.headers.get('content-type');
+      let errorDetail = 'Erro desconhecido';
+      
+      if (contentType && contentType.includes('application/json')) {
+        const err = await res.json();
+        console.error('Erro:', err);
+        errorDetail = err.detail || JSON.stringify(err);
+      } else {
+        const text = await res.text();
+        console.error('Erro texto:', text);
+        errorDetail = text;
+      }
+
+      msg.textContent = `Erro: ${errorDetail}`;
+      msg.className = 'muted error';
+
+    } catch (e) {
+      console.error('Erro de conexão:', e);
+      msg.textContent = `Erro: ${e.message}`;
+      msg.className = 'muted error';
+    }
+  }
+
+  function limparFormulario() {
+    ['m_placa', 'm_data', 'm_km', 'm_tipo', 'm_prestador', 'm_custo', 'm_observacoes'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        if (id === 'm_data') {
+          el.value = hoje;
+        } else {
+          el.value = '';
+        }
+      }
+    });
+    if (msg) {
+      msg.textContent = '';
+      msg.className = 'muted';
+    }
+  }
+
+  if (salvarBtn) {
+    salvarBtn.addEventListener('click', postarManutencao);
+  }
+
+  if (limparBtn) {
+    limparBtn.addEventListener('click', limparFormulario);
+  }
+});
+</script>
   {% endblock %}
 </body>
 </html>

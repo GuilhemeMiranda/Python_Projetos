@@ -1,179 +1,235 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import text
 from app import models, schemas
-from typing import Optional, List
+import hashlib
 
-# ===== CRUD DE USUÁRIOS =====
-def criar_usuario(db: Session, usuario: schemas.UsuarioCreate):
-    from app.security import gerar_hash_senha
-    db_usuario = models.Usuario(
-        nome=usuario.nome,
-        email=usuario.email,
-        senha_hash=gerar_hash_senha(usuario.senha)
-    )
-    db.add(db_usuario)
-    db.commit()
-    db.refresh(db_usuario)
-    return db_usuario
+# ============================================================
+# CRUD de Usuários
+# ============================================================
 
 def get_usuario(db: Session, usuario_id: int):
-    return db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
+    """Busca um usuário por ID."""
+    result = db.execute(
+        text("SELECT * FROM usuarios WHERE id = :id"),
+        {"id": usuario_id}
+    ).fetchone()
+    return result
 
-def get_usuario_por_email(db: Session, email: str):
-    return db.query(models.Usuario).filter(models.Usuario.email == email).first()
+def get_usuario_by_email(db: Session, email: str):
+    """Busca um usuário por e-mail."""
+    result = db.execute(
+        text("SELECT * FROM usuarios WHERE email = :email"),
+        {"email": email}
+    ).fetchone()
+    return result
 
 def get_usuarios(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Usuario).offset(skip).limit(limit).all()
+    """Lista todos os usuários."""
+    result = db.execute(
+        text("SELECT * FROM usuarios LIMIT :limit OFFSET :skip"),
+        {"limit": limit, "skip": skip}
+    ).fetchall()
+    return result
 
-def atualizar_usuario(db: Session, usuario_id: int, usuario: schemas.UsuarioCreate):
-    from app.security import gerar_hash_senha
-    db_usuario = get_usuario(db, usuario_id)
-    if db_usuario:
-        db_usuario.nome = usuario.nome
-        db_usuario.email = usuario.email
-        if usuario.senha:
-            db_usuario.senha_hash = gerar_hash_senha(usuario.senha)
-        db.commit()
-        db.refresh(db_usuario)
-    return db_usuario
-
-def deletar_usuario(db: Session, usuario_id: int):
-    db_usuario = get_usuario(db, usuario_id)
-    if db_usuario:
-        db.delete(db_usuario)
-        db.commit()
-    return db_usuario
-
-# ===== CRUD DE VEÍCULOS =====
-def criar_veiculo(db: Session, veiculo: schemas.VeiculoCreate, usuario_id: int):
-    db_veiculo = models.Veiculo(
-        placa=veiculo.placa,
-        ano=veiculo.ano,
-        marca=veiculo.marca,
-        modelo=veiculo.modelo,
-        km_atual=veiculo.km_atual,
-        usuario_id=usuario_id
+def create_usuario(db: Session, usuario: schemas.UsuarioCreate):
+    """Cria um novo usuário."""
+    hashed_password = hashlib.sha256(usuario.senha.encode()).hexdigest()
+    
+    db.execute(
+        text("""
+            INSERT INTO usuarios (nome, email, senha_hash)
+            VALUES (:nome, :email, :senha_hash)
+        """),
+        {
+            "nome": usuario.nome,
+            "email": usuario.email,
+            "senha_hash": hashed_password
+        }
     )
-    db.add(db_veiculo)
     db.commit()
-    db.refresh(db_veiculo)
-    return db_veiculo
+    
+    return get_usuario_by_email(db, email=usuario.email)
+
+# ============================================================
+# CRUD de Veículos
+# ============================================================
 
 def get_veiculo(db: Session, veiculo_id: int):
-    return db.query(models.Veiculo).filter(models.Veiculo.id == veiculo_id).first()
+    """Busca um veículo por ID."""
+    result = db.execute(
+        text("SELECT * FROM veiculos WHERE id = :id"),
+        {"id": veiculo_id}
+    ).fetchone()
+    return result
 
-def get_veiculo_por_placa(db: Session, placa: str):
-    return db.query(models.Veiculo).filter(models.Veiculo.placa == placa).first()
+def get_veiculos_by_usuario(db: Session, usuario_id: int):
+    """Lista todos os veículos de um usuário."""
+    result = db.execute(
+        text("SELECT * FROM veiculos WHERE usuario_id = :usuario_id"),
+        {"usuario_id": usuario_id}
+    ).fetchall()
+    return result
 
-def get_veiculos(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Veiculo).offset(skip).limit(limit).all()
-
-def get_veiculos_usuario(db: Session, usuario_id: int):
-    return db.query(models.Veiculo).filter(models.Veiculo.usuario_id == usuario_id).all()
-
-def atualizar_veiculo(db: Session, veiculo_id: int, veiculo: schemas.VeiculoCreate):
-    db_veiculo = get_veiculo(db, veiculo_id)
-    if db_veiculo:
-        db_veiculo.placa = veiculo.placa
-        db_veiculo.ano = veiculo.ano
-        db_veiculo.marca = veiculo.marca
-        db_veiculo.modelo = veiculo.modelo
-        db_veiculo.km_atual = veiculo.km_atual
-        db.commit()
-        db.refresh(db_veiculo)
-    return db_veiculo
-
-def deletar_veiculo(db: Session, veiculo_id: int):
-    db_veiculo = get_veiculo(db, veiculo_id)
-    if db_veiculo:
-        db.delete(db_veiculo)
-        db.commit()
-    return db_veiculo
-
-# ===== CRUD DE MANUTENÇÕES =====
-def criar_manutencao(db: Session, manutencao: schemas.ManutencaoCreate):
-    db_manutencao = models.Manutencao(
-        veiculo_id=manutencao.veiculo_id,
-        data=manutencao.data,
-        km=manutencao.km,
-        tipo=manutencao.tipo,
-        prestador=manutencao.prestador,
-        custo=manutencao.custo
+def create_veiculo(db: Session, veiculo: schemas.VeiculoCreate, usuario_id: int):
+    """Cria um novo veículo."""
+    db.execute(
+        text("""
+            INSERT INTO veiculos (placa, ano, marca, modelo, km_atual, usuario_id)
+            VALUES (:placa, :ano, :marca, :modelo, :km_atual, :usuario_id)
+        """),
+        {
+            "placa": veiculo.placa,
+            "ano": veiculo.ano,
+            "marca": veiculo.marca,
+            "modelo": veiculo.modelo,
+            "km_atual": veiculo.km_atual,
+            "usuario_id": usuario_id
+        }
     )
-    db.add(db_manutencao)
     db.commit()
-    db.refresh(db_manutencao)
-    return db_manutencao
+    
+    result = db.execute(
+        text("SELECT * FROM veiculos WHERE placa = :placa AND usuario_id = :usuario_id"),
+        {"placa": veiculo.placa, "usuario_id": usuario_id}
+    ).fetchone()
+    return result
+
+# ============================================================
+# CRUD de Manutenções
+# ============================================================
 
 def get_manutencao(db: Session, manutencao_id: int):
-    return db.query(models.Manutencao).filter(models.Manutencao.id == manutencao_id).first()
+    """Busca uma manutenção por ID."""
+    result = db.execute(
+        text("SELECT * FROM manutencoes WHERE id = :id"),
+        {"id": manutencao_id}
+    ).fetchone()
+    return result
 
-def get_manutencoes(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Manutencao).offset(skip).limit(limit).all()
+def get_manutencoes_by_veiculo(db: Session, veiculo_id: int):
+    """Lista todas as manutenções de um veículo."""
+    result = db.execute(
+        text("SELECT * FROM manutencoes WHERE veiculo_id = :veiculo_id ORDER BY data_manutencao DESC"),
+        {"veiculo_id": veiculo_id}
+    ).fetchall()
+    return result
 
-def get_manutencoes_veiculo(db: Session, veiculo_id: int):
-    return db.query(models.Manutencao).filter(
-        models.Manutencao.veiculo_id == veiculo_id
-    ).order_by(models.Manutencao.data.desc()).all()
-
-def atualizar_manutencao(db: Session, manutencao_id: int, manutencao: schemas.ManutencaoCreate):
-    db_manutencao = get_manutencao(db, manutencao_id)
-    if db_manutencao:
-        db_manutencao.veiculo_id = manutencao.veiculo_id
-        db_manutencao.data = manutencao.data
-        db_manutencao.km = manutencao.km
-        db_manutencao.tipo = manutencao.tipo
-        db_manutencao.prestador = manutencao.prestador
-        db_manutencao.custo = manutencao.custo
-        db.commit()
-        db.refresh(db_manutencao)
-    return db_manutencao
-
-def deletar_manutencao(db: Session, manutencao_id: int):
-    db_manutencao = get_manutencao(db, manutencao_id)
-    if db_manutencao:
-        db.delete(db_manutencao)
-        db.commit()
-    return db_manutencao
-
-# ===== CRUD DE PLANOS DE MANUTENÇÃO =====
-def criar_plano(db: Session, plano: schemas.PlanoCreate):
-    db_plano = models.PlanoManutencao(
-        veiculo_id=plano.veiculo_id,
-        tipo_manutencao=plano.tipo_manutencao,
-        km_previsto=plano.km_previsto,
-        data_prevista=plano.data_prevista
+def create_manutencao(db: Session, manutencao: schemas.ManutencaoCreate, veiculo_id: int):
+    """Cria uma nova manutenção."""
+    db.execute(
+        text("""
+            INSERT INTO manutencoes 
+            (veiculo_id, data_manutencao, km_manutencao, tipo_manutencao, prestador, custo, observacoes)
+            VALUES (:veiculo_id, :data_manutencao, :km_manutencao, :tipo_manutencao, :prestador, :custo, :observacoes)
+        """),
+        {
+            "veiculo_id": veiculo_id,
+            "data_manutencao": manutencao.data_manutencao,
+            "km_manutencao": manutencao.km_manutencao,
+            "tipo_manutencao": manutencao.tipo_manutencao,
+            "prestador": manutencao.prestador,
+            "custo": manutencao.custo,
+            "observacoes": manutencao.observacoes
+        }
     )
-    db.add(db_plano)
     db.commit()
-    db.refresh(db_plano)
-    return db_plano
+    
+    result = db.execute(
+        text("SELECT * FROM manutencoes WHERE veiculo_id = :veiculo_id ORDER BY id DESC LIMIT 1"),
+        {"veiculo_id": veiculo_id}
+    ).fetchone()
+    return result
 
-def get_plano(db: Session, plano_id: int):
-    return db.query(models.PlanoManutencao).filter(models.PlanoManutencao.id == plano_id).first()
+# ============================================================
+# CRUD de Planos de Manutenção
+# ============================================================
 
-def get_planos(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.PlanoManutencao).offset(skip).limit(limit).all()
+def get_plano_manutencao(db: Session, plano_id: int):
+    """Busca um plano de manutenção por ID."""
+    result = db.execute(
+        text("SELECT * FROM planos_manutencao WHERE id = :id"),
+        {"id": plano_id}
+    ).fetchone()
+    return result
 
-def get_planos_veiculo(db: Session, veiculo_id: int):
-    return db.query(models.PlanoManutencao).filter(
-        models.PlanoManutencao.veiculo_id == veiculo_id
-    ).order_by(models.PlanoManutencao.km_previsto).all()
+def get_planos_manutencao(db: Session, skip: int = 0, limit: int = 100):
+    """Lista todos os planos de manutenção."""
+    result = db.execute(
+        text("SELECT * FROM planos_manutencao LIMIT :limit OFFSET :skip"),
+        {"limit": limit, "skip": skip}
+    ).fetchall()
+    return result
 
-def atualizar_plano(db: Session, plano_id: int, plano: schemas.PlanoCreate):
-    db_plano = get_plano(db, plano_id)
-    if db_plano:
-        db_plano.veiculo_id = plano.veiculo_id
-        db_plano.tipo_manutencao = plano.tipo_manutencao
-        db_plano.km_previsto = plano.km_previsto
-        db_plano.data_prevista = plano.data_prevista
-        db.commit()
-        db.refresh(db_plano)
-    return db_plano
+def create_plano_manutencao(db: Session, plano: schemas.PlanoManutencaoCreate):
+    """Cria um novo plano de manutenção."""
+    db.execute(
+        text("""
+            INSERT INTO planos_manutencao 
+            (veiculo_id, tipo_manutencao, km_proxima, data_proxima, periodicidade_km, periodicidade_meses, descricao)
+            VALUES (:veiculo_id, :tipo_manutencao, :km_proxima, :data_proxima, :periodicidade_km, :periodicidade_meses, :descricao)
+        """),
+        {
+            "veiculo_id": plano.veiculo_id,
+            "tipo_manutencao": plano.tipo_manutencao,
+            "km_proxima": plano.km_proxima,
+            "data_proxima": plano.data_proxima,
+            "periodicidade_km": plano.periodicidade_km,
+            "periodicidade_meses": plano.periodicidade_meses,
+            "descricao": plano.descricao
+        }
+    )
+    db.commit()
+    
+    result = db.execute(
+        text("SELECT * FROM planos_manutencao WHERE veiculo_id = :veiculo_id ORDER BY id DESC LIMIT 1"),
+        {"veiculo_id": plano.veiculo_id}
+    ).fetchone()
+    return result
 
-def deletar_plano(db: Session, plano_id: int):
-    db_plano = get_plano(db, plano_id)
-    if db_plano:
-        db.delete(db_plano)
-        db.commit()
-    return db_plano
+def update_plano_manutencao(db: Session, plano_id: int, plano: schemas.PlanoManutencaoUpdate):
+    """Atualiza um plano de manutenção."""
+    update_fields = []
+    params = {"id": plano_id}
+    
+    if plano.tipo_manutencao is not None:
+        update_fields.append("tipo_manutencao = :tipo_manutencao")
+        params["tipo_manutencao"] = plano.tipo_manutencao
+    
+    if plano.km_proxima is not None:
+        update_fields.append("km_proxima = :km_proxima")
+        params["km_proxima"] = plano.km_proxima
+    
+    if plano.data_proxima is not None:
+        update_fields.append("data_proxima = :data_proxima")
+        params["data_proxima"] = plano.data_proxima
+    
+    if plano.periodicidade_km is not None:
+        update_fields.append("periodicidade_km = :periodicidade_km")
+        params["periodicidade_km"] = plano.periodicidade_km
+    
+    if plano.periodicidade_meses is not None:
+        update_fields.append("periodicidade_meses = :periodicidade_meses")
+        params["periodicidade_meses"] = plano.periodicidade_meses
+    
+    if plano.descricao is not None:
+        update_fields.append("descricao = :descricao")
+        params["descricao"] = plano.descricao
+    
+    if not update_fields:
+        return get_plano_manutencao(db, plano_id)
+    
+    query = f"UPDATE planos_manutencao SET {', '.join(update_fields)} WHERE id = :id"
+    
+    db.execute(text(query), params)
+    db.commit()
+    
+    return get_plano_manutencao(db, plano_id)
+
+def delete_plano_manutencao(db: Session, plano_id: int):
+    """Deleta um plano de manutenção."""
+    db.execute(
+        text("DELETE FROM planos_manutencao WHERE id = :id"),
+        {"id": plano_id}
+    )
+    db.commit()
+    return True
