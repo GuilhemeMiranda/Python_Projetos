@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # =================================================================
+  # Serviço da API FastAPI
+  # =================================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: manutencao-veicular-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app/app
+      - ./tests:/app/tests
+      - ./manutencao_veicular.db:/app/manutencao_veicular.db
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=sqlite:///./manutencao_veicular.db
+      - DEBUG=True
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+    networks:
+      - manutencao-network
+
+  # =================================================================
+  # Banco de Dados PostgreSQL (opcional - descomente para usar)
+  # =================================================================
+  # db:
+  #   image: postgres:15-alpine
+  #   container_name: manutencao-veicular-db
+  #   ports:
+  #     - "5432:5432"
+  #   environment:
+  #     - POSTGRES_USER=manutencao_user
+  #     - POSTGRES_PASSWORD=manutencao_pass
+  #     - POSTGRES_DB=manutencao_veicular
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - manutencao-network
+
+  # =================================================================
+  # PgAdmin (opcional - interface web para PostgreSQL)
+  # =================================================================
+  # pgadmin:
+  #   image: dpage/pgadmin4:latest
+  #   container_name: manutencao-veicular-pgadmin
+  #   ports:
+  #     - "5050:80"
+  #   environment:
+  #     - PGADMIN_DEFAULT_EMAIL=admin@exemplo.com
+  #     - PGADMIN_DEFAULT_PASSWORD=admin
+  #   networks:
+  #     - manutencao-network
+  #   depends_on:
+  #     - db
+
+  # =================================================================
+  # Redis (opcional - para cache)
+  # =================================================================
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: manutencao-veicular-redis
+  #   ports:
+  #     - "6379:6379"
+  #   networks:
+  #     - manutencao-network
+
+networks:
+  manutencao-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
