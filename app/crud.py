@@ -34,7 +34,7 @@ def buscar_usuario_por_email(db: Session, email: str):
 
 def criar_veiculo(db: Session, veiculo: schemas.VeiculoCreate):
     """Cria um novo veículo vinculado a um usuário."""
-    novo_veiculo = models.Veiculo(**veiculo.dict())
+    novo_veiculo = models.Veiculo(**veiculo.model_dump())
     db.add(novo_veiculo)
     db.commit()
     db.refresh(novo_veiculo)
@@ -56,7 +56,7 @@ def atualizar_veiculo(db: Session, veiculo_id: int, dados: schemas.VeiculoBase):
     veiculo = buscar_veiculo_por_id(db, veiculo_id)
     if not veiculo:
         return None
-    for campo, valor in dados.dict(exclude_unset=True).items():
+    for campo, valor in dados.model_dump(exclude_unset=True).items():
         setattr(veiculo, campo, valor)
     db.commit()
     db.refresh(veiculo)
@@ -79,7 +79,7 @@ def excluir_veiculo(db: Session, veiculo_id: int):
 
 def criar_manutencao(db: Session, manutencao: schemas.ManutencaoCreate):
     """Cria um registro de manutenção."""
-    nova_manutencao = models.Manutencao(**manutencao.dict())
+    nova_manutencao = models.Manutencao(**manutencao.model_dump())
     db.add(nova_manutencao)
     db.commit()
     db.refresh(nova_manutencao)
@@ -112,7 +112,7 @@ def excluir_manutencao(db: Session, manutencao_id: int):
 
 def criar_documento(db: Session, documento: schemas.DocumentoCreate):
     """Salva o registro de um documento vinculado a uma manutenção."""
-    novo_documento = models.Documento(**documento.dict())
+    novo_documento = models.Documento(**documento.model_dump())
     db.add(novo_documento)
     db.commit()
     db.refresh(novo_documento)
@@ -140,7 +140,7 @@ def excluir_documento(db: Session, documento_id: int):
 
 def criar_plano(db: Session, plano: schemas.PlanoManutencaoCreate):
     """Cria um plano de manutenção para um veículo."""
-    novo_plano = models.PlanoManutencao(**plano.dict())
+    novo_plano = models.PlanoManutencao(**plano.model_dump())
     db.add(novo_plano)
     db.commit()
     db.refresh(novo_plano)

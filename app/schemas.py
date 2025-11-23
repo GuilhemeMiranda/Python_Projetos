@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import Optional, List
 from datetime import date
 
@@ -16,10 +16,7 @@ class UsuarioCreate(UsuarioBase):
 class UsuarioResponse(UsuarioBase):
     id: int
 
-    class Config:
-        orm_mode = True
-        # orm_mode permite converter automaticamente objetos ORM
-        # do SQLAlchemy em respostas JSON
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ============================================================
@@ -40,8 +37,7 @@ class VeiculoResponse(VeiculoBase):
     id: int
     usuario_id: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ============================================================
@@ -63,8 +59,7 @@ class ManutencaoCreate(ManutencaoBase):
 class ManutencaoResponse(ManutencaoBase):
     id: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ============================================================
@@ -83,8 +78,7 @@ class DocumentoCreate(DocumentoBase):
 class DocumentoResponse(DocumentoBase):
     id: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ============================================================
@@ -103,5 +97,4 @@ class PlanoManutencaoCreate(PlanoManutencaoBase):
 class PlanoManutencaoResponse(PlanoManutencaoBase):
     id: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
