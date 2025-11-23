@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ main, develop ]
 
+permissions:
+  contents: read
+
 jobs:
   # =================================================================
   # Job 1: Testes e Qualidade de Código
@@ -13,6 +16,8 @@ jobs:
   test:
     name: Testes e Linting
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     strategy:
       matrix:
@@ -69,6 +74,8 @@ jobs:
   security:
     name: Verificação de Segurança
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
     - name: Checkout do código
@@ -101,6 +108,8 @@ jobs:
     name: Build da Aplicação
     runs-on: ubuntu-latest
     needs: [test, security]
+    permissions:
+      contents: read
     
     steps:
     - name: Checkout do código
