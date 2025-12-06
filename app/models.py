@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Date, Float, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Date, Float, ForeignKey, Text, Boolean, DateTime, CheckConstraint, UniqueConstraint
 from sqlalchemy.orm import relationship
+from datetime import datetime
 from app.database import Base
 
 # -----------------------------------------------------------
@@ -15,6 +16,8 @@ class Usuario(Base):
 
     # Relacionamento 1:N → Usuário tem vários veículos
     veiculos = relationship("Veiculo", back_populates="usuario")
+    # Relacionamento 1:N → Usuário tem vários planos
+    planos = relationship("PlanoManutencao", back_populates="usuario", cascade="all, delete-orphan")
 
 # -----------------------------------------------------------
 # 2. Tabela de Veículos
@@ -33,7 +36,8 @@ class Veiculo(Base):
     # Relacionamentos
     usuario = relationship("Usuario", back_populates="veiculos")
     manutencoes = relationship("Manutencao", back_populates="veiculo")
-    planos = relationship("PlanoManutencao", back_populates="veiculo")
+    # Relacionamento N:N com planos através de VeiculoPlano
+    vinculos_planos = relationship("VeiculoPlano", back_populates="veiculo", cascade="all, delete-orphan")
 
 # -----------------------------------------------------------
 # 3. Tabela de Manutenções
@@ -70,16 +74,66 @@ class Documento(Base):
     manutencao = relationship("Manutencao", back_populates="documentos")
 
 # -----------------------------------------------------------
-# 5. Tabela de Planos de Manutenção
+# 5. Tabela de Planos de Manutenção (NOVA ESTRUTURA)
 # -----------------------------------------------------------
 class PlanoManutencao(Base):
+    """
+    Planos de manutenção preventiva vinculados ao usuário.
+    Permite definir intervalos por KM e/ou dias.
+    Relacionamento N:N com veículos através de VeiculoPlano.
+    """
     __tablename__ = "planos_manutencao"
-
+    
     id = Column(Integer, primary_key=True, index=True)
-    veiculo_id = Column(Integer, ForeignKey("veiculos.id"), nullable=False)
-    nome_plano = Column(String(100))
-    km_referencia = Column(Integer)
-    servicos = Column(Text)
+    nome = Column(String(200), nullable=False)
+    descricao = Column(Text, nullable=True)
+    km_intervalo = Column(Integer, nullable=True)
+    dias_intervalo = Column(Integer, nullable=True)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relacionamentos
+    usuario = relationship("Usuario", back_populates="planos")
+    veiculos = relationship("VeiculoPlano", back_populates="plano", cascade="all, delete-orphan")
+    
+    # Constraints: Pelo menos um intervalo deve ser informado
+    __table_args__ = (
+        CheckConstraint('km_intervalo IS NULL OR km_intervalo > 0', name='chk_km_positivo'),
+        CheckConstraint('dias_intervalo IS NULL OR dias_intervalo > 0', name='chk_dias_positivo'),
+        CheckConstraint('km_intervalo IS NOT NULL OR dias_intervalo IS NOT NULL', name='chk_um_intervalo'),
+    )
+    
+    def __repr__(self):
+        return f"<PlanoManutencao(id={self.id}, nome='{self.nome}')>"
 
-    # Relacionamento com veículo
-    veiculo = relationship("Veiculo", back_populates="planos")
+# -----------------------------------------------------------
+# 6. Tabela de Vínculo Veículo-Plano (N:N)
+# -----------------------------------------------------------
+class VeiculoPlano(Base):
+    """
+    Tabela associativa para relacionamento N:N entre veículos e planos.
+    - Um veículo pode ter múltiplos planos de manutenção.
+    - Um plano pode ser aplicado a múltiplos veículos.
+    """
+    __tablename__ = "veiculos_planos"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    veiculo_id = Column(Integer, ForeignKey("veiculos.id", ondelete="CASCADE"), nullable=False)
+    plano_manutencao_id = Column(Integer, ForeignKey("planos_manutencao.id", ondelete="CASCADE"), nullable=False)
+    data_inicio = Column(Date, nullable=False)
+    proxima_manutencao_km = Column(Integer, nullable=True)
+    proxima_manutencao_data = Column(Date, nullable=True)
+    ativo = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relacionamentos
+    veiculo = relationship("Veiculo", back_populates="vinculos_planos")
+    plano = relationship("PlanoManutencao", back_populates="veiculos")
+    
+    # Constraint: Um veículo não pode ter o mesmo plano duplicado
+    __table_args__ = (
+        UniqueConstraint('veiculo_id', 'plano_manutencao_id', name='uk_veiculo_plano'),
+    )
+    
+    def __repr__(self):
+        return f"<VeiculoPlano(veiculo_id={self.veiculo_id}, plano_id={self.plano_manutencao_id})>"

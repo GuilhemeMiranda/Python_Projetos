@@ -2,28 +2,28 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Relatório de Manutenções</title>
+  <title>Lista de Planos de Manutenção</title>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/styles.css">
-  <script src="/static/manutencao.js" defer></script>
 </head>
 <body class="ui-bg">
   {% extends "base.html" %}
-  {% block title %}Relatório de Manutenções{% endblock %}
+  {% block title %}Planos de Manutenção{% endblock %}
 
   {% block content %}
-  <main class="card report-card" aria-label="Relatório de Manutenções">
+  <main class="card report-card" aria-label="Lista de Planos de Manutenção">
     <header class="card-header">
-      <h1>Relatório de Manutenções</h1>
+      <h1>Planos de Manutenção</h1>
+      <a href="/ui/plano" class="btn btn-primary">➕ Novo Plano</a>
     </header>
 
     <section class="report-controls">
       <div class="row">
         <button id="refreshReport" class="btn btn-primary">Atualizar</button>
         <input 
-          id="filterVeiculo" 
+          id="filterNome" 
           type="text" 
-          placeholder="Filtrar por placa" 
+          placeholder="Filtrar por nome" 
           class="input small"
         />
         <button id="applyFilter" class="btn btn-light">Filtrar</button>
@@ -32,21 +32,23 @@
     </section>
 
     <section class="table-wrap">
-      <table id="manutTable" class="table">
+      <table id="planosTable" class="table">
         <thead>
           <tr>
             <th>ID</th>
-            <th>Placa</th>
-            <th>Data</th>
-            <th>KM</th>
-            <th>Tipo</th>
-            <th>Prestador</th>
-            <th>Custo</th>
+            <th>Nome</th>
+            <th>Descrição</th>
+            <th>Intervalo KM</th>
+            <th>Intervalo Dias</th>
             <th>Ações</th>
           </tr>
         </thead>
         <tbody>
-          <!-- Preenchido via JavaScript -->
+          <tr>
+            <td colspan="6" class="text-center">
+              <div class="loading">Carregando planos...</div>
+            </td>
+          </tr>
         </tbody>
       </table>
       <div id="reportMsg" class="muted"></div>
@@ -57,7 +59,7 @@
   <div id="editModal" class="modal" style="display:none;">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>Editar Manutenção</h2>
+        <h2>Editar Plano de Manutenção</h2>
         <button id="closeModal" class="close-btn">&times;</button>
       </div>
       
@@ -65,80 +67,49 @@
         <input type="hidden" id="edit_id" />
         
         <div class="form-row">
-          <label for="edit_placa">Placa do Veículo:</label>
+          <label for="edit_nome">Nome do Plano:</label>
           <input
-            id="edit_placa"
+            id="edit_nome"
             type="text"
             class="input"
-            disabled
-          />
-          <small class="muted">A placa não pode ser alterada</small>
-        </div>
-
-        <div class="form-row">
-          <label for="edit_data">Data da Manutenção:</label>
-          <input
-            id="edit_data"
-            type="date"
-            class="input"
+            placeholder="Ex: Troca de Óleo, Revisão 10.000km..."
             required
+            minlength="3"
           />
         </div>
 
         <div class="form-row">
-          <label for="edit_km">KM na Manutenção:</label>
+          <label for="edit_descricao">Descrição:</label>
+          <textarea
+            id="edit_descricao"
+            rows="3"
+            class="input"
+            placeholder="Descreva os detalhes do plano de manutenção..."
+          ></textarea>
+        </div>
+
+        <div class="form-row">
+          <label for="edit_km_intervalo">Intervalo em KM:</label>
           <input
-            id="edit_km"
+            id="edit_km_intervalo"
             type="number"
             class="input small"
             min="0"
-            required
+            placeholder="Ex: 10000"
           />
+          <small class="muted">Deixe em branco se não usar intervalo por KM</small>
         </div>
 
         <div class="form-row">
-          <label for="edit_tipo">Tipo de Manutenção:</label>
+          <label for="edit_dias_intervalo">Intervalo em Dias:</label>
           <input
-            id="edit_tipo"
-            type="text"
-            class="input"
-            placeholder="Ex: Troca de óleo, Revisão, Pneus..."
-            required
-          />
-        </div>
-
-        <div class="form-row">
-          <label for="edit_prestador">Prestador de Serviço:</label>
-          <input
-            id="edit_prestador"
-            type="text"
-            class="input"
-            placeholder="Ex: Oficina XYZ, Posto ABC..."
-            required
-          />
-        </div>
-
-        <div class="form-row">
-          <label for="edit_custo">Custo (R$):</label>
-          <input
-            id="edit_custo"
+            id="edit_dias_intervalo"
             type="number"
-            step="0.01"
-            min="0.01"
             class="input small"
-            placeholder="0.00"
-            required
+            min="0"
+            placeholder="Ex: 180"
           />
-        </div>
-
-        <div class="form-row">
-          <label for="edit_observacoes">Observações:</label>
-          <textarea
-            id="edit_observacoes"
-            rows="3"
-            class="input"
-            placeholder="Observações adicionais sobre a manutenção..."
-          ></textarea>
+          <small class="muted">Deixe em branco se não usar intervalo por dias</small>
         </div>
 
         <div class="actions">
@@ -159,7 +130,7 @@
         <button id="closeDeleteModal" class="close-btn">&times;</button>
       </div>
       <div class="modal-body" style="padding: 24px;">
-        <p>Tem certeza que deseja excluir esta manutenção?</p>
+        <p>Tem certeza que deseja excluir este plano de manutenção?</p>
         <p class="muted" style="color: #dc3545; font-weight: 600;">Esta ação não pode ser desfeita!</p>
         
         <div class="actions" style="margin-top: 24px;">
@@ -172,26 +143,19 @@
     </div>
   </div>
 
-  <script src="/static/manutencao_report.js" defer></script>
-  <script>
-    // ...existing code...
-
-    tr.innerHTML = `
-      <td>${m.id}</td>
-      <td>${m.placa}</td>
-      <td>${dataFormatada}</td>
-      <td>${m.km ? m.km.toLocaleString('pt-BR') : '-'}</td>
-      <td>${m.tipo_manutencao || '-'}</td>
-      <td>${m.prestador || '-'}</td>
-      <td>${custoFormatado}</td>
-      <td class="actions-cell">
-        <button class="btn btn-sm btn-edit" data-id="${m.id}" data-action="edit">✏️ Editar</button>
-        <button class="btn btn-sm btn-danger" data-id="${m.id}" data-action="delete">🗑️ Excluir</button>
-      </td>
-    `;
-
-    // ...existing code...
-  </script>
+  <script src="/static/plano_list.js" defer></script>
   {% endblock %}
 </body>
 </html>
+
+tr.innerHTML = `
+  <td>${plano.id}</td>
+  <td>${plano.nome}</td>
+  <td>${plano.descricao || '-'}</td>
+  <td>${kmFormatado}</td>
+  <td>${diasFormatado}</td>
+  <td class="actions-cell">
+    <button class="btn btn-sm btn-edit" data-id="${plano.id}" data-action="edit">✏️ Editar</button>
+    <button class="btn btn-sm btn-danger" data-id="${plano.id}" data-action="delete">🗑️ Excluir</button>
+  </td>
+`;

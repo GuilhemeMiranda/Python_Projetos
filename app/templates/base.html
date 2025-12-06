@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>{% block title %}Manutenção Veicular{% endblock %}</title>
+  <title>{% block title %}Dashboard - Manutenção Veicular{% endblock %}</title>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/styles.css">
 </head>
@@ -14,11 +14,14 @@
         <button id="btnToggle" class="hamburger" aria-label="Abrir menu">☰</button>
       </div>
       <nav class="nav">
-        <a class="nav-item" href="/ui/dashboard">Início</a>
-        <a class="nav-item" href="/ui/veiculo">Cadastrar Veículo</a>
-        <a class="nav-item" href="/ui/veiculos">Meus Veículos</a>
-        <a class="nav-item" href="/ui/manutencao">Cadastrar Manutenção</a>
-        <a class="nav-item" href="/ui/manutencoes">Relatório de Manutenções</a>
+        <a href="/ui/dashboard" class="nav-item">🏠 Home</a>
+        <a href="/ui/veiculo" class="nav-item">🚗 Novo Veículo</a>
+        <a href="/ui/veiculos" class="nav-item">📋 Listar Veículos</a>
+        <a href="/ui/manutencao" class="nav-item">🔧 Nova Manutenção</a>
+        <a href="/ui/manutencoes" class="nav-item">📊 Relatório</a>
+        <a href="/ui/plano" class="nav-item">📋 Novo Plano</a>
+        <a href="/ui/planos" class="nav-item">📋 Listar Planos</a>
+        <a href="/ui/veiculos-planos" class="nav-item">🔗 Associar Planos</a>
       </nav>
       <div class="sidebar-footer">
         <small>v1.2</small>
@@ -26,7 +29,62 @@
       </div>
     </aside>
     <main class="content" id="content">
-      {% block content %}{% endblock %}
+      {% block content %}
+      <section class="card welcome-card">
+        <header class="card-header">
+          <h1>🚗 Bem-vindo ao Sistema de Manutenção Veicular</h1>
+        </header>
+        <div class="card-body">
+          <p style="font-size: 1.1rem; margin-bottom: 24px;">
+            Use o menu lateral para navegar entre as funcionalidades do sistema:
+          </p>
+          
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 32px;">
+            
+            <!-- Card: Veículos -->
+            <div class="info-card">
+              <h3 style="color: var(--chocolate); margin-bottom: 12px;">🚗 Veículos</h3>
+              <ul style="line-height: 1.8;">
+                <li><a href="/ui/veiculo" style="color: var(--text-primary);">➕ Cadastrar Novo Veículo</a></li>
+                <li><a href="/ui/veiculos" style="color: var(--text-primary);">📋 Listar Veículos</a></li>
+              </ul>
+            </div>
+
+            <!-- Card: Manutenções -->
+            <div class="info-card">
+              <h3 style="color: var(--chocolate); margin-bottom: 12px;">🔧 Manutenções</h3>
+              <ul style="line-height: 1.8;">
+                <li><a href="/ui/manutencao" style="color: var(--text-primary);">➕ Registrar Manutenção</a></li>
+                <li><a href="/ui/manutencoes" style="color: var(--text-primary);">📊 Relatório de Manutenções</a></li>
+              </ul>
+            </div>
+
+            <!-- Card: Planos -->
+            <div class="info-card">
+              <h3 style="color: var(--chocolate); margin-bottom: 12px;">📋 Planos de Manutenção</h3>
+              <ul style="line-height: 1.8;">
+                <li><a href="/ui/plano" style="color: var(--text-primary);">➕ Criar Novo Plano</a></li>
+                <li><a href="/ui/planos" style="color: var(--text-primary);">📋 Listar Planos</a></li>
+                <li><a href="/ui/veiculos-planos" style="color: var(--text-primary);">🔗 Associar Planos</a></li>
+              </ul>
+            </div>
+
+          </div>
+
+          <div style="margin-top: 40px; padding: 20px; background: rgba(170, 84, 58, 0.1); border-radius: 8px; border-left: 4px solid var(--chocolate);">
+            <h3 style="color: var(--chocolate); margin-bottom: 8px;">💡 Dica</h3>
+            <p style="color: var(--muted); margin: 0;">
+              Mantenha seus veículos atualizados e cadastre planos de manutenção preventiva para receber alertas automáticos!
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Seções compactas opcionais (mantidas para compatibilidade) -->
+      <section id="sec-usuarios" class="compact-section"></section>
+      <section id="sec-veiculos" class="compact-section"></section>
+      <section id="sec-manutencoes" class="compact-section"></section>
+      {% endblock %}
     </main>
   </div>
   <script src="/static/nav.js" defer></script>

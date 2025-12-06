@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app import models, schemas
+from typing import List, Optional
+from datetime import date
 import hashlib
 
 # ============================================================
@@ -141,95 +143,126 @@ def create_manutencao(db: Session, manutencao: schemas.ManutencaoCreate, veiculo
     return result
 
 # ============================================================
-# CRUD de Planos de Manutenção
+# CRUD de Planos de Manutenção (NOVA ESTRUTURA)
 # ============================================================
 
-def get_plano_manutencao(db: Session, plano_id: int):
-    """Busca um plano de manutenção por ID."""
-    result = db.execute(
-        text("SELECT * FROM planos_manutencao WHERE id = :id"),
-        {"id": plano_id}
-    ).fetchone()
-    return result
+def get_plano(db: Session, plano_id: int):
+    """Busca um plano por ID."""
+    return db.query(models.PlanoManutencao).filter(models.PlanoManutencao.id == plano_id).first()
 
-def get_planos_manutencao(db: Session, skip: int = 0, limit: int = 100):
-    """Lista todos os planos de manutenção."""
-    result = db.execute(
-        text("SELECT * FROM planos_manutencao LIMIT :limit OFFSET :skip"),
-        {"limit": limit, "skip": skip}
-    ).fetchall()
-    return result
 
-def create_plano_manutencao(db: Session, plano: schemas.PlanoManutencaoCreate):
-    """Cria um novo plano de manutenção."""
-    db.execute(
-        text("""
-            INSERT INTO planos_manutencao 
-            (veiculo_id, tipo_manutencao, km_proxima, data_proxima, periodicidade_km, periodicidade_meses, descricao)
-            VALUES (:veiculo_id, :tipo_manutencao, :km_proxima, :data_proxima, :periodicidade_km, :periodicidade_meses, :descricao)
-        """),
-        {
-            "veiculo_id": plano.veiculo_id,
-            "tipo_manutencao": plano.tipo_manutencao,
-            "km_proxima": plano.km_proxima,
-            "data_proxima": plano.data_proxima,
-            "periodicidade_km": plano.periodicidade_km,
-            "periodicidade_meses": plano.periodicidade_meses,
-            "descricao": plano.descricao
-        }
+def get_planos(db: Session, usuario_id: int, skip: int = 0, limit: int = 100):
+    """Lista todos os planos de um usuário."""
+    return db.query(models.PlanoManutencao)\
+        .filter(models.PlanoManutencao.usuario_id == usuario_id)\
+        .offset(skip)\
+        .limit(limit)\
+        .all()
+
+
+def create_plano(db: Session, plano: schemas.PlanoManutencaoCreate, usuario_id: int):
+    """Cria um novo plano."""
+    db_plano = models.PlanoManutencao(
+        nome=plano.nome,
+        descricao=plano.descricao,
+        km_intervalo=plano.km_intervalo,
+        dias_intervalo=plano.dias_intervalo,
+        usuario_id=usuario_id
     )
+    db.add(db_plano)
     db.commit()
-    
-    result = db.execute(
-        text("SELECT * FROM planos_manutencao WHERE veiculo_id = :veiculo_id ORDER BY id DESC LIMIT 1"),
-        {"veiculo_id": plano.veiculo_id}
-    ).fetchone()
-    return result
+    db.refresh(db_plano)
+    return db_plano
 
-def update_plano_manutencao(db: Session, plano_id: int, plano: schemas.PlanoManutencaoUpdate):
-    """Atualiza um plano de manutenção."""
-    update_fields = []
-    params = {"id": plano_id}
+
+def update_plano(db: Session, plano_id: int, plano: schemas.PlanoManutencaoUpdate):
+    """Atualiza um plano existente."""
+    db_plano = get_plano(db, plano_id)
+    if not db_plano:
+        return None
     
-    if plano.tipo_manutencao is not None:
-        update_fields.append("tipo_manutencao = :tipo_manutencao")
-        params["tipo_manutencao"] = plano.tipo_manutencao
+    update_data = plano.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_plano, key, value)
     
-    if plano.km_proxima is not None:
-        update_fields.append("km_proxima = :km_proxima")
-        params["km_proxima"] = plano.km_proxima
-    
-    if plano.data_proxima is not None:
-        update_fields.append("data_proxima = :data_proxima")
-        params["data_proxima"] = plano.data_proxima
-    
-    if plano.periodicidade_km is not None:
-        update_fields.append("periodicidade_km = :periodicidade_km")
-        params["periodicidade_km"] = plano.periodicidade_km
-    
-    if plano.periodicidade_meses is not None:
-        update_fields.append("periodicidade_meses = :periodicidade_meses")
-        params["periodicidade_meses"] = plano.periodicidade_meses
-    
-    if plano.descricao is not None:
-        update_fields.append("descricao = :descricao")
-        params["descricao"] = plano.descricao
-    
-    if not update_fields:
-        return get_plano_manutencao(db, plano_id)
-    
-    query = f"UPDATE planos_manutencao SET {', '.join(update_fields)} WHERE id = :id"
-    
-    db.execute(text(query), params)
     db.commit()
-    
-    return get_plano_manutencao(db, plano_id)
+    db.refresh(db_plano)
+    return db_plano
 
-def delete_plano_manutencao(db: Session, plano_id: int):
-    """Deleta um plano de manutenção."""
-    db.execute(
-        text("DELETE FROM planos_manutencao WHERE id = :id"),
-        {"id": plano_id}
-    )
+
+def delete_plano(db: Session, plano_id: int):
+    """Deleta um plano."""
+    db_plano = get_plano(db, plano_id)
+    if not db_plano:
+        return False
+    
+    db.delete(db_plano)
     db.commit()
     return True
+
+
+# ============================================================
+# CRUD de Vínculo Veículo-Plano
+# ============================================================
+
+def get_veiculo_plano(db: Session, veiculo_plano_id: int):
+    """Busca um vínculo por ID."""
+    return db.query(models.VeiculoPlano).filter(models.VeiculoPlano.id == veiculo_plano_id).first()
+
+
+def get_veiculos_do_plano(db: Session, plano_id: int):
+    """Lista todos os veículos vinculados a um plano."""
+    return db.query(models.VeiculoPlano)\
+        .filter(models.VeiculoPlano.plano_manutencao_id == plano_id)\
+        .all()
+
+
+def get_planos_do_veiculo(db: Session, veiculo_id: int):
+    """Lista todos os planos vinculados a um veículo."""
+    return db.query(models.VeiculoPlano)\
+        .filter(models.VeiculoPlano.veiculo_id == veiculo_id)\
+        .all()
+
+
+def vincular_veiculo_plano(db: Session, veiculo_id: int, plano_id: int, data_inicio: date):
+    """Vincula um veículo a um plano."""
+    db_vinculo = models.VeiculoPlano(
+        veiculo_id=veiculo_id,
+        plano_manutencao_id=plano_id,
+        data_inicio=data_inicio,
+        ativo=True
+    )
+    db.add(db_vinculo)
+    db.commit()
+    db.refresh(db_vinculo)
+    return db_vinculo
+
+
+def desvincular_veiculo_plano(db: Session, veiculo_id: int, plano_id: int):
+    """Remove o vínculo entre veículo e plano."""
+    db_vinculo = db.query(models.VeiculoPlano)\
+        .filter(models.VeiculoPlano.veiculo_id == veiculo_id)\
+        .filter(models.VeiculoPlano.plano_manutencao_id == plano_id)\
+        .first()
+    
+    if not db_vinculo:
+        return False
+    
+    db.delete(db_vinculo)
+    db.commit()
+    return True
+
+
+def update_veiculo_plano(db: Session, veiculo_plano_id: int, vinculo: schemas.VeiculoPlanoUpdate):
+    """Atualiza um vínculo existente."""
+    db_vinculo = get_veiculo_plano(db, veiculo_plano_id)
+    if not db_vinculo:
+        return None
+    
+    update_data = vinculo.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_vinculo, key, value)
+    
+    db.commit()
+    db.refresh(db_vinculo)
+    return db_vinculo

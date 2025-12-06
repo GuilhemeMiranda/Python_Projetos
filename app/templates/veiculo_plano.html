@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Associar Planos aos Veículos{% endblock %}
+
+{% block content %}
+<main class="card report-card" aria-label="Associação de Planos">
+  <header class="card-header">
+    <h1>🔗 Associar Planos aos Veículos</h1>
+  </header>
+
+  <!-- Formulário de Associação -->
+  <section class="form-vertical">
+    <div class="form-row">
+      <label for="veiculo_id" class="label">Selecione o Veículo:</label>
+      <select id="veiculo_id" class="input" required>
+        <option value="">Carregando veículos...</option>
+      </select>
+    </div>
+
+    <div class="form-row">
+      <label for="plano_id" class="label">Selecione o Plano:</label>
+      <select id="plano_id" class="input" required>
+        <option value="">Carregando planos...</option>
+      </select>
+    </div>
+
+    <div class="form-row">
+      <label for="proxima_data" class="label">Próxima Data (opcional):</label>
+      <input id="proxima_data" type="date" class="input small" />
+      <small class="muted">Data prevista para a próxima manutenção</small>
+    </div>
+
+    <div class="form-row">
+      <label for="proximo_km" class="label">Próximo KM (opcional):</label>
+      <input id="proximo_km" type="number" class="input small" min="0" placeholder="Ex: 15000" />
+      <small class="muted">KM previsto para a próxima manutenção</small>
+    </div>
+
+    <div class="actions">
+      <button id="btnAssociar" class="btn btn-primary">➕ Associar Plano</button>
+    </div>
+
+    <div id="formMsg" class="muted"></div>
+  </section>
+
+  <!-- Lista de Associações -->
+  <section class="table-wrap">
+    <h2 style="color: var(--muted); margin-bottom: 12px;">Planos Associados</h2>
+    <table id="associacoesTable" class="table">
+      <thead>
+        <tr>
+          <th>Veículo</th>
+          <th>Plano</th>
+          <th>Próxima Data</th>
+          <th>Próximo KM</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td colspan="5" class="text-center">Carregando...</td>
+        </tr>
+      </tbody>
+    </table>
+    <div id="listMsg" class="muted"></div>
+  </section>
+</main>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div id="deleteModal" class="modal" style="display:none;">
+  <div class="modal-content modal-small">
+    <div class="modal-header">
+      <h2>Confirmar Remoção</h2>
+      <button id="closeDeleteModal" class="close-btn">&times;</button>
+    </div>
+    <div class="modal-body" style="padding: 24px;">
+      <p>Tem certeza que deseja remover esta associação?</p>
+      <p class="muted" style="color: #dc3545; font-weight: 600;">Esta ação não pode ser desfeita!</p>
+      
+      <div class="actions" style="margin-top: 24px;">
+        <button type="button" id="btnCancelarDelete" class="btn btn-light">Cancelar</button>
+        <button type="button" id="btnConfirmarDelete" class="btn btn-danger">Remover</button>
+      </div>
+
+      <div id="deleteMsg" class="muted" style="margin-top: 16px;"></div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/veiculo_plano.js" defer></script>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Cadastro de Plano{% endblock %}
+
+{% block content %}
+<main class="card form-card" aria-label="Cadastro de Plano de Manutenção">
+  <header class="card-header">
+    <h1>📝 Cadastro de Plano de Manutenção</h1>
+  </header>
+  
+  <form id="planoForm" class="form-vertical">
+    <div class="form-row">
+      <label for="nome" class="label">Nome do Plano:</label>
+      <input 
+        id="nome" 
+        name="nome" 
+        type="text" 
+        placeholder="Ex: Troca de Óleo, Revisão 10.000 km" 
+        class="input" 
+        required 
+        minlength="3"
+        maxlength="200"
+      />
+    </div>
+
+    <div class="form-row">
+      <label for="descricao" class="label">Descrição:</label>
+      <textarea 
+        id="descricao" 
+        name="descricao" 
+        placeholder="Descreva os serviços incluídos neste plano..." 
+        class="input textarea"
+      ></textarea>
+      <small class="muted">Opcional: Detalhe o que será feito</small>
+    </div>
+
+    <div class="form-row">
+      <label for="km_intervalo" class="label">Intervalo em KM:</label>
+      <input 
+        id="km_intervalo" 
+        name="km_intervalo" 
+        type="number" 
+        placeholder="Ex: 10000" 
+        class="input small"
+        min="1"
+      />
+    </div>
+
+    <div class="form-row">
+      <label for="dias_intervalo" class="label">Intervalo em Dias:</label>
+      <input 
+        id="dias_intervalo" 
+        name="dias_intervalo" 
+        type="number" 
+        placeholder="Ex: 180" 
+        class="input small"
+        min="1"
+      />
+    </div>
+
+    <small class="muted">* Pelo menos um intervalo (KM ou Dias) deve ser informado</small>
+
+    <div class="actions">
+      <button id="btnLimpar" type="button" class="btn btn-light">Limpar</button>
+      <button id="btnSalvar" type="button" class="btn btn-primary">Salvar</button>
+    </div>
+
+    <div id="mensagem" class="muted"></div>
+  </form>
+</main>
+
+<script src="/static/plano.js" defer></script>
+{% endblock %}

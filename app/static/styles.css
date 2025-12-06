@@ -37,6 +37,18 @@ html,body{height:100%;margin:0;font-family:var(--font);background:var(--bg-dark)
 .btn-light{background:#3b2f2d}
 .btn-danger{background:var(--sienna)}
 
+/* Botão Editar Padronizado */
+.btn-edit {
+  background: var(--chocolate);
+  color: var(--white);
+  border: none;
+}
+
+.btn-edit:hover {
+  background: #8f3f2e;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
 /* Report table */
 .table-wrap{margin-top:14px;background:rgba(255,255,255,0.02);padding:12px;border-radius:8px}
 .table{width:100%;border-collapse:collapse;background:transparent}

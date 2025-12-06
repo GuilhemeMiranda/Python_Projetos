@@ -106,7 +106,14 @@ async def api_login(request: Request, db: Session = Depends(get_db)):
     
     token = security.criar_token_acesso({"sub": str(uid) if uid is not None else uemail, "email": uemail})
     resp = JSONResponse({"msg": "ok", "redirect": "/ui/dashboard"})
-    resp.set_cookie(key="access_token", value=token, httponly=True, samesite="lax", path="/")
+    resp.set_cookie(
+        key="access_token", 
+        value=token, 
+        httponly=False,
+        samesite="lax", 
+        path="/",
+        max_age=3600
+    )
     return resp
 
 @router.post("/auth/registro")

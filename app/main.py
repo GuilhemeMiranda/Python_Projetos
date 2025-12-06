@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.database import engine, get_db
 from app import models, security
-from app.routes import auth, veiculos, manutencoes, usuarios, planos
+from app.routes import auth, veiculos, manutencoes, usuarios, planos, veiculos_planos
 
 
 # ============================================================
@@ -46,6 +46,7 @@ app.include_router(veiculos.router, prefix="/veiculos", tags=["Veículos"])
 app.include_router(manutencoes.router, prefix="/manutencoes", tags=["Manutenções"])
 app.include_router(usuarios.router, prefix="/usuarios", tags=["Usuários"])
 app.include_router(planos.router, prefix="/planos", tags=["Planos de Manutenção"])
+app.include_router(veiculos_planos.router, prefix="/veiculos-planos", tags=["Associação Veículo-Plano"])
 
 # Função helper para obter usuário do token
 def _get_user_from_request(request: Request):
@@ -86,7 +87,7 @@ def ui_dashboard(request: Request):
     user = _get_user_from_request(request)
     if not user:
         return RedirectResponse("/ui/login")
-    return templates.TemplateResponse("index.html", {"request": request, "user": user})
+    return templates.TemplateResponse("dashboard.html", {"request": request, "user": user})
 
 # Tela de cadastro de veículo
 @app.get("/ui/veiculo", include_in_schema=False)
@@ -119,6 +120,30 @@ def ui_manutencoes(request: Request):
     if not user:
         return RedirectResponse("/ui/login")
     return templates.TemplateResponse("manutencao_report.html", {"request": request, "user": user})
+
+# Tela de cadastro de plano
+@app.get("/ui/plano", include_in_schema=False)
+def ui_plano_form(request: Request):
+    user = _get_user_from_request(request)
+    if not user:
+        return RedirectResponse("/ui/login")
+    return templates.TemplateResponse("plano_form.html", {"request": request, "user": user})
+
+# Tela de listagem de planos
+@app.get("/ui/planos", include_in_schema=False)
+def ui_planos(request: Request):
+    user = _get_user_from_request(request)
+    if not user:
+        return RedirectResponse("/ui/login")
+    return templates.TemplateResponse("plano_list.html", {"request": request, "user": user})
+
+# Tela de associação de planos aos veículos
+@app.get("/ui/veiculos-planos", include_in_schema=False)
+def ui_veiculos_planos(request: Request):
+    user = _get_user_from_request(request)
+    if not user:
+        return RedirectResponse("/ui/login")
+    return templates.TemplateResponse("veiculo_plano.html", {"request": request, "user": user})
 
 @app.get("/health")
 def health_check():

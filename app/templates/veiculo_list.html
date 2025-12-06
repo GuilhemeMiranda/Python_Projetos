@@ -104,3 +104,22 @@
 
 <script src="/static/veiculo_list.js" defer></script>
 {% endblock %}
+
+<script>
+  // ...existing code...
+
+  tr.innerHTML = `
+    <td>${v.id}</td>
+    <td>${v.placa}</td>
+    <td>${v.marca}</td>
+    <td>${v.modelo}</td>
+    <td>${v.ano}</td>
+    <td>${v.km_atual ? v.km_atual.toLocaleString('pt-BR') : '-'}</td>
+    <td class="actions-cell">
+      <button class="btn btn-sm btn-edit" data-id="${v.id}" data-action="edit">✏️ Editar</button>
+      <button class="btn btn-sm btn-danger" data-id="${v.id}" data-action="delete">🗑️ Excluir</button>
+    </td>
+  `;
+
+  // ...existing code...
+</script>
